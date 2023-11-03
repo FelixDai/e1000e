@@ -22,7 +22,7 @@
  * Adjust the frequency of the PHC cycle counter by the indicated delta from
  * the base frequency.
  **/
-static int e1000e_phc_adjfreq(struct ptp_clock_info *ptp, s32 delta)
+static int e1000e_phc_adjfreq(struct ptp_clock_info *ptp, long delta)
 {
 	struct e1000_adapter *adapter = container_of(ptp, struct e1000_adapter,
 						     ptp_clock_info);
@@ -311,7 +311,7 @@ static const struct ptp_clock_info e1000e_ptp_clock_info = {
 	.n_pins		= 0,
 #endif
 	.pps		= 0,
-	.adjfreq	= e1000e_phc_adjfreq,
+	.adjfine	= e1000e_phc_adjfreq,
 	.adjtime	= e1000e_phc_adjtime,
 #ifdef HAVE_PTP_CLOCK_INFO_GETTIME64
 #ifdef HAVE_PTP_SYS_OFFSET_EXTENDED_IOCTL
