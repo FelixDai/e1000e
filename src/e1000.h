@@ -1,6 +1,6 @@
 /*
  * Intel PRO/1000 Linux driver
- * Copyright(c) 1999 - 2014 Intel Corporation.
+ * Copyright(c) 1999 - 2015 Intel Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -32,9 +32,8 @@
 #include <linux/if_vlan.h>
 #include "kcompat.h"
 #ifdef HAVE_HW_TIME_STAMP
-#include <linux/clocksource.h>
 #include <linux/net_tstamp.h>
-#endif
+#endif /* HAVE_HW_TIME_STAMP */
 #ifdef HAVE_PTP_1588_CLOCK
 #include <linux/ptp_clock_kernel.h>
 #include <linux/ptp_classify.h>
@@ -104,6 +103,8 @@ struct e1000_info;
 #define DEFAULT_RADV			8
 #define BURST_RDTR			0x20
 #define BURST_RADV			0x20
+#define PCICFG_DESC_RING_STATUS		0xe4
+#define FLUSH_DESC_REQUIRED		0x100
 
 /* in the case of WTHRESH, it appears at least the 82571/2 hardware
  * writes back 4 descriptors when WTHRESH=5, and 3 descriptors when
@@ -139,6 +140,7 @@ enum e1000_boards {
 	board_pchlan,
 	board_pch2lan,
 	board_pch_lpt,
+	board_pch_spt
 };
 
 struct e1000_ps_page {
@@ -282,12 +284,12 @@ struct e1000_adapter {
 	/* Rx */
 #ifdef CONFIG_E1000E_NAPI
 	bool (*clean_rx)(struct e1000_ring *ring, int *work_done,
-			  int work_to_do) ____cacheline_aligned_in_smp;
+			 int work_to_do) ____cacheline_aligned_in_smp;
 #else
 	bool (*clean_rx)(struct e1000_ring *ring) ____cacheline_aligned_in_smp;
 #endif
 	void (*alloc_rx_buf)(struct e1000_ring *ring, int cleaned_count,
-			      gfp_t gfp);
+			     gfp_t gfp);
 	struct e1000_ring *rx_ring;
 
 	u32 rx_int_delay;
@@ -393,7 +395,11 @@ struct e1000_adapter {
 	struct ptp_clock *ptp_clock;
 	struct ptp_clock_info ptp_clock_info;
 #endif
-
+#ifdef HAVE_PM_QOS_REQUEST_LIST_NEW
+	struct pm_qos_request pm_qos_req;
+#elif defined(HAVE_PM_QOS_REQUEST_LIST)
+	struct pm_qos_request_list pm_qos_req;
+#endif
 	u16 eee_advert;
 };
 
@@ -435,6 +441,10 @@ s32 e1000e_get_base_timinca(struct e1000_adapter *adapter, u32 *timinca);
 #define INCVALUE_SHIFT_25MHz	18
 #define INCPERIOD_25MHz		1
 
+#define INCVALUE_24MHz		125
+#define INCVALUE_SHIFT_24MHz	14
+#define INCPERIOD_24MHz		3
+
 /* Another drawback of scaling the incvalue by a large factor is the
  * 64-bit SYSTIM register overflows more quickly.  This is dealt with
  * by simply reading the clock before it overflows.
@@ -445,8 +455,8 @@ s32 e1000e_get_base_timinca(struct e1000_adapter *adapter, u32 *timinca);
  * 25MHz	46-bit	2^46 / 10^9 / 3600 = 19.55 hours
  */
 #define E1000_SYSTIM_OVERFLOW_PERIOD	(HZ * 60 * 60 * 4)
-#define E1000_MAX_82574_SYSTIM_REREADS 50
-#define E1000_82574_SYSTIM_EPSILON (1ULL << 35ULL)
+#define E1000_MAX_82574_SYSTIM_REREADS	50
+#define E1000_82574_SYSTIM_EPSILON	(1ULL << 35ULL)
 #endif /* HAVE_HW_TIME_STAMP */
 
 /* hardware capability, feature, and workaround flags */
@@ -528,8 +538,8 @@ enum latency_range {
 extern char e1000e_driver_name[];
 extern const char e1000e_driver_version[];
 
-extern void e1000e_check_options(struct e1000_adapter *adapter);
-extern void e1000e_set_ethtool_ops(struct net_device *netdev);
+void e1000e_check_options(struct e1000_adapter *adapter);
+void e1000e_set_ethtool_ops(struct net_device *netdev);
 #ifndef HAVE_ETHTOOL_SET_PHYS_ID
 extern void e1000e_led_blink_task(struct work_struct *work);
 #endif
@@ -537,27 +547,26 @@ extern void e1000e_led_blink_task(struct work_struct *work);
 extern int ethtool_ioctl(struct ifreq *ifr);
 #endif
 
-extern int e1000e_up(struct e1000_adapter *adapter);
-extern void e1000e_down(struct e1000_adapter *adapter, bool reset);
-extern void e1000e_reinit_locked(struct e1000_adapter *adapter);
-extern void e1000e_reset(struct e1000_adapter *adapter);
-extern void e1000e_power_up_phy(struct e1000_adapter *adapter);
-extern int e1000e_setup_rx_resources(struct e1000_ring *ring);
-extern int e1000e_setup_tx_resources(struct e1000_ring *ring);
-extern void e1000e_free_rx_resources(struct e1000_ring *ring);
-extern void e1000e_free_tx_resources(struct e1000_ring *ring);
+int e1000e_up(struct e1000_adapter *adapter);
+void e1000e_down(struct e1000_adapter *adapter, bool reset);
+void e1000e_reinit_locked(struct e1000_adapter *adapter);
+void e1000e_reset(struct e1000_adapter *adapter);
+void e1000e_power_up_phy(struct e1000_adapter *adapter);
+int e1000e_setup_rx_resources(struct e1000_ring *ring);
+int e1000e_setup_tx_resources(struct e1000_ring *ring);
+void e1000e_free_rx_resources(struct e1000_ring *ring);
+void e1000e_free_tx_resources(struct e1000_ring *ring);
 #ifdef HAVE_NDO_GET_STATS64
-extern struct rtnl_link_stats64 *e1000e_get_stats64(struct net_device *netdev,
-						    struct rtnl_link_stats64
-						    *stats);
+struct rtnl_link_stats64 *e1000e_get_stats64(struct net_device *netdev,
+					     struct rtnl_link_stats64 *stats);
 #else /* HAVE_NDO_GET_STATS64 */
 extern void e1000e_update_stats(struct e1000_adapter *adapter);
 #endif /* HAVE_NDO_GET_STATS64 */
-extern void e1000e_set_interrupt_capability(struct e1000_adapter *adapter);
-extern void e1000e_reset_interrupt_capability(struct e1000_adapter *adapter);
-extern void e1000e_get_hw_control(struct e1000_adapter *adapter);
-extern void e1000e_release_hw_control(struct e1000_adapter *adapter);
-extern void e1000e_write_itr(struct e1000_adapter *adapter, u32 itr);
+void e1000e_set_interrupt_capability(struct e1000_adapter *adapter);
+void e1000e_reset_interrupt_capability(struct e1000_adapter *adapter);
+void e1000e_get_hw_control(struct e1000_adapter *adapter);
+void e1000e_release_hw_control(struct e1000_adapter *adapter);
+void e1000e_write_itr(struct e1000_adapter *adapter, u32 itr);
 
 extern unsigned int copybreak;
 
@@ -576,8 +585,8 @@ extern const struct e1000_info e1000_pch_spt_info;
 extern const struct e1000_info e1000_es2_info;
 
 #ifdef HAVE_PTP_1588_CLOCK
-extern void e1000e_ptp_init(struct e1000_adapter *adapter);
-extern void e1000e_ptp_remove(struct e1000_adapter *adapter);
+void e1000e_ptp_init(struct e1000_adapter *adapter);
+void e1000e_ptp_remove(struct e1000_adapter *adapter);
 #else
 #define e1000e_ptp_init(adapter) do {} while (0)
 #define e1000e_ptp_remove(adapter) do {} while (0)
@@ -608,7 +617,7 @@ static inline s32 e1e_wphy_locked(struct e1000_hw *hw, u32 offset, u16 data)
 	return hw->phy.ops.write_reg_locked(hw, offset, data);
 }
 
-extern void e1000e_reload_nvm_generic(struct e1000_hw *hw);
+void e1000e_reload_nvm_generic(struct e1000_hw *hw);
 
 static inline s32 e1000e_read_mac_addr(struct e1000_hw *hw)
 {

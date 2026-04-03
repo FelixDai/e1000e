@@ -1,7 +1,7 @@
 ################################################################################
 #
 # Intel PRO/1000 Linux driver
-# Copyright(c) 1999 - 2014 Intel Corporation.
+# Copyright(c) 1999 - 2015 Intel Corporation.
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms and conditions of the GNU General Public License,
@@ -83,8 +83,8 @@ VSP :=  $(KOBJ)/include/generated/utsrelease.h \
         /boot/vmlinuz.version.h
 
 # Config file Search Path
-CSP :=  $(KSRC)/include/generated/autoconf.h \
-        $(KSRC)/include/linux/autoconf.h \
+CSP :=  $(KOBJ)/include/generated/autoconf.h \
+        $(KOBJ)/include/linux/autoconf.h \
         /boot/vmlinuz.autoconf.h
 
 # prune the lists down to only files that exist
@@ -186,7 +186,7 @@ endif
 ifneq ($(filter %NO_PTP_SUPPORT,$(CFLAGS_EXTRA)),-DNO_PTP_SUPPORT)
 # Do not attempt to enable PTP on kernels that do not support it
 ifeq (1,$(shell ([ $(KVER_CODE) -ge 196608 ] || [ $(RHEL_CODE) -ge 1540 ]) && echo 1 || echo 0))
-include $(KSRC)/include/config/auto.conf
+include $(KOBJ)/include/config/auto.conf
 ifdef CONFIG_PTP_1588_CLOCK
 CFILES += ptp.c
 endif # CONFIG_PTP_1588_CLOCK
