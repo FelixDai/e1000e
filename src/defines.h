@@ -1,5 +1,5 @@
 /* Intel PRO/1000 Linux driver
- * Copyright(c) 1999 - 2017 Intel Corporation.
+ * Copyright(c) 1999 - 2018 Intel Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -237,6 +237,7 @@
 #define E1000_STATUS_SPEED_10		0x00000000	/* Speed 10Mb/s */
 #define E1000_STATUS_SPEED_100		0x00000040	/* Speed 100Mb/s */
 #define E1000_STATUS_SPEED_1000		0x00000080	/* Speed 1000Mb/s */
+#define E1000_STATUS_SPEED_2500		0x000000C0	/* Speed 2500Mb/s */
 #define E1000_STATUS_LAN_INIT_DONE	0x00000200	/* Lan Init Compltn by NVM */
 #define E1000_STATUS_PHYRA		0x00000400	/* PHY Reset Asserted */
 #define E1000_STATUS_GIO_MASTER_ENABLE	0x00080000	/* Master request status */
@@ -253,11 +254,16 @@
 #define ADVERTISE_100_FULL		0x0008
 #define ADVERTISE_1000_HALF		0x0010	/* Not used, just FYI */
 #define ADVERTISE_1000_FULL		0x0020
+#define ADVERTISE_2500_HALF		0x0040	/* NOT used, just FYI */
+#define ADVERTISE_2500_FULL		0x0080
 
 /* 1000/H is not supported, nor spec-compliant. */
 #define E1000_ALL_SPEED_DUPLEX	( \
 	ADVERTISE_10_HALF | ADVERTISE_10_FULL | ADVERTISE_100_HALF | \
 	ADVERTISE_100_FULL | ADVERTISE_1000_FULL)
+#define E1000_ALL_SPEED_DUPLEX_2500 ( \
+	ADVERTISE_10_HALF | ADVERTISE_10_FULL | ADVERTISE_100_HALF | \
+	ADVERTISE_100_FULL | ADVERTISE_1000_FULL | ADVERTISE_2500_FULL)
 #define E1000_ALL_NOT_GIG	( \
 	ADVERTISE_10_HALF | ADVERTISE_10_FULL | ADVERTISE_100_HALF | \
 	ADVERTISE_100_FULL)
@@ -266,6 +272,7 @@
 #define E1000_ALL_HALF_DUPLEX	(ADVERTISE_10_HALF | ADVERTISE_100_HALF)
 
 #define AUTONEG_ADVERTISE_SPEED_DEFAULT		E1000_ALL_SPEED_DUPLEX
+#define AUTONEG_ADVERTISE_SPEED_DEFAULT_2500	E1000_ALL_SPEED_DUPLEX_2500
 
 /* LED Control */
 #define E1000_PHY_LED0_MODE_MASK	0x00000007
@@ -576,6 +583,8 @@
 				 E1000_GCR_TXD_NO_SNOOP    | \
 				 E1000_GCR_TXDSCW_NO_SNOOP | \
 				 E1000_GCR_TXDSCR_NO_SNOOP)
+
+#define E1000_MMDAC_FUNC_DATA	0x4000	/* Data, no post increment */
 
 /* NVM Control */
 #define E1000_EECD_SK		0x00000001	/* NVM Clock */

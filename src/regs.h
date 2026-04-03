@@ -1,5 +1,5 @@
 /* Intel PRO/1000 Linux driver
- * Copyright(c) 1999 - 2017 Intel Corporation.
+ * Copyright(c) 1999 - 2018 Intel Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -87,6 +87,9 @@
 /* Split and Replication Rx Control - RW */
 #define E1000_RDTR	0x02820	/* Rx Delay Timer - RW */
 #define E1000_RADV	0x0282C	/* Rx Interrupt Absolute Delay Timer - RW */
+#define E1000_MMDAC			13	/* MMD Access Control */
+#define E1000_MMDAAD			14	/* MMD Access Address/Data */
+
 /* Convenience macros
  *
  * Note: "_n" is the queue number of the register to be written to.

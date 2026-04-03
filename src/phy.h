@@ -1,5 +1,5 @@
 /* Intel PRO/1000 Linux driver
- * Copyright(c) 1999 - 2017 Intel Corporation.
+ * Copyright(c) 1999 - 2018 Intel Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -96,7 +96,6 @@ s32 e1000_get_cable_length_82577(struct e1000_hw *hw);
 #define BM_PHY_PAGE_SELECT		22	/* Page Select for BM */
 #define IGP_PAGE_SHIFT			5
 #define PHY_REG_MASK			0x1F
-
 /* BM/HV Specific Registers */
 #define BM_PORT_CTRL_PAGE		769
 #define BM_WUC_PAGE			800

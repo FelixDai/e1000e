@@ -1,5 +1,5 @@
 /* Intel PRO/1000 Linux driver
- * Copyright(c) 1999 - 2017 Intel Corporation.
+ * Copyright(c) 1999 - 2018 Intel Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -1327,12 +1327,21 @@ s32 e1000e_get_speed_and_duplex_copper(struct e1000_hw *hw, u16 *speed,
 	u32 status;
 
 	status = er32(STATUS);
-	if (status & E1000_STATUS_SPEED_1000)
+	switch (status & E1000_STATUS_SPEED_MASK) {
+	case E1000_STATUS_SPEED_2500:
+		*speed = SPEED_2500;
+		break;
+	case E1000_STATUS_SPEED_1000:
 		*speed = SPEED_1000;
-	else if (status & E1000_STATUS_SPEED_100)
+		break;
+	case E1000_STATUS_SPEED_100:
 		*speed = SPEED_100;
-	else
+		break;
+	case E1000_STATUS_SPEED_10:
+	default:
 		*speed = SPEED_10;
+		break;
+	}
 
 	if (status & E1000_STATUS_FD)
 		*duplex = FULL_DUPLEX;
@@ -1340,7 +1349,8 @@ s32 e1000e_get_speed_and_duplex_copper(struct e1000_hw *hw, u16 *speed,
 		*duplex = HALF_DUPLEX;
 
 	e_dbg("%u Mbps, %s Duplex\n",
-	      *speed == SPEED_1000 ? 1000 : *speed == SPEED_100 ? 100 : 10,
+	      *speed == SPEED_2500 ? 2500 : *speed == SPEED_1000 ? 1000 :
+	      *speed == SPEED_100 ? 100 : 10,
 	      *duplex == FULL_DUPLEX ? "Full" : "Half");
 
 	return 0;

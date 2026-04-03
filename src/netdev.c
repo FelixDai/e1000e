@@ -1,5 +1,5 @@
 /* Intel PRO/1000 Linux driver
- * Copyright(c) 1999 - 2017 Intel Corporation.
+ * Copyright(c) 1999 - 2018 Intel Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -53,7 +53,7 @@
 #define DRV_EXTRAVERSION ""
 #endif
 
-#define DRV_VERSION "3.4.0.2" DRV_EXTRAVERSION
+#define DRV_VERSION "3.4.1.1" DRV_EXTRAVERSION
 char e1000e_driver_name[] = "e1000e";
 const char e1000e_driver_version[] = DRV_VERSION;
 
@@ -3418,7 +3418,10 @@ static void e1000_configure_tx(struct e1000_adapter *adapter)
 		ew32(IOSFPC, reg_val);
 
 		reg_val = er32(TARC(0));
-		/* SPT and KBL Si errata workaround to avoid Tx hang */
+		/* SPT and KBL Si errata workaround to avoid Tx hang.
+		 * Dropping the number of outstanding requests from
+		 * 3 to 2 in order to avoid a buffer overrun.
+		 */
 		reg_val &= ~E1000_TARC0_CB_MULTIQ_3_REQ;
 		reg_val |= E1000_TARC0_CB_MULTIQ_2_REQ;
 		ew32(TARC(0), reg_val);
@@ -7986,7 +7989,11 @@ static const struct net_device_ops e1000e_netdev_ops = {
 #endif /* HAVE_NDO_GET_STATS64 */
 	.ndo_set_rx_mode	= e1000e_set_rx_mode,
 	.ndo_set_mac_address	= e1000_set_mac,
+#ifdef HAVE_RHEL7_EXTENDED_MIN_MAX_MTU
+	.extended.ndo_change_mtu	= e1000_change_mtu,
+#else
 	.ndo_change_mtu		= e1000_change_mtu,
+#endif
 	.ndo_do_ioctl		= e1000_ioctl,
 	.ndo_tx_timeout		= e1000_tx_timeout,
 	.ndo_validate_addr	= eth_validate_addr,
@@ -8726,7 +8733,7 @@ static int __init e1000_init_module(void)
 {
 	pr_info("Intel(R) PRO/1000 Network Driver - %s\n",
 		e1000e_driver_version);
-	pr_info("Copyright(c) 1999 - 2017 Intel Corporation.\n");
+	pr_info("Copyright(c) 1999 - 2018 Intel Corporation.\n");
 
 #ifndef USE_REBOOT_NOTIFIER
 	return pci_register_driver(&e1000_driver);

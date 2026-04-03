@@ -14,12 +14,11 @@ for the Gigabit Family of Adapters.
 modprobe e1000e [<option>=<VAL1>,<VAL2>,...]
 .PD 1v
 .SH DESCRIPTION
-This driver is intended for \fB2.4.x\fR and \fB2.6.x\fR kernels. 
+This driver is intended for \fB2.4.x\fR and \fB2.6.x\fR kernels. A version of the driver may already be included by your distribution and/or the kernel.org kernel.
+
 This driver includes support for Intel(R) Itanium(R)2-based systems.
 .LP
-This driver is only supported as a loadable module at this time. Intel is
-not supplying patches against the kernel source to allow for static linking of
-the drivers.
+This driver is only supported as a loadable module at this time. Intel is not supplying patches against the kernel source to allow for static linking of the drivers.
 
 
 For questions related to hardware requirements, refer to the documentation
@@ -59,7 +58,7 @@ increased CPU utilization, though it may help throughput in some circumstances.
   sometimes cause extra CPU utilization. If planning on deploying e1000e
   in a latency sensitive environment, this parameter should be considered.
 .IP
-<min_ITR>-<max_ITR> = 
+<min_ITR>-<max_ITR> =
   Setting InterruptThrottleRate to a value greater or equal to <min_ITR>
   will program the adapter to send at most that many interrupts
   per second, even if more packets have come in. This reduces interrupt load
@@ -176,7 +175,6 @@ loading or enabling the driver, try disabling this feature.
 A link between two EEE-compliant devices will result in periodic bursts of
 data followed by periods where the link is in an idle state. This Low Power
 Idle (LPI) state is supported in both 1 Gbps and 100 Mbps link speeds.
-
 .LP
 .B Node
 .IP
@@ -244,7 +242,7 @@ For additional information regarding building and installation, see the
 README
 included with the driver.
 For general information, go to the Intel support website at:
-.B www.intel.com/support/
+.B http://www.intel.com/support/
 .LP
 If an issue is identified with the released source code on a supported kernel with a supported adapter, email the specific information related to the issue to e1000-devel@lists.sf.net.
 .LP
