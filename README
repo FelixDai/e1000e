@@ -6,15 +6,17 @@ May 15, 2019
 
 =====================
 
+Contents
+========
 - Overview
+- Identifying Your Adapter
 - Building and Installation
 - Command Line Parameters
+- Additional Features and Configurations
 - Speed and Duplex Configuration
 - Known Issues
 - Support
 - License
-
-================================
 
 
 Overview
@@ -32,14 +34,9 @@ For questions related to hardware requirements, refer to the documentation
 supplied with your Intel adapter. All hardware requirements listed apply to use
 with Linux.
 
-The driver information previously displayed in the /proc file system is not
-supported in this release.
-
 
 NOTE: The Intel(R) 82562v 10/100 Network Connection only provides 10/100
 support.
-
-This driver no longer supports Itanium(R)-based systems.
 
 
 Upgrading
@@ -53,30 +50,56 @@ perform the following:
 - Install the e1000e driver using the instructions in the Building and
   Installation section below.
 - Modify /etc/modprobe.conf to point your PCIe devices to use the new e1000e
-  driver using alias ethX e1000e, or use your distribution's specific method
+  driver using alias <ethX> e1000e, or use your distribution's specific method
   for configuring network adapters like RedHat's setup/system-config-network
   or SuSE's yast2.
 
 
+Identifying Your Adapter
+========================
+For information on how to identify your adapter, and for the latest Intel
+network drivers, refer to the Intel Support website:
+http://www.intel.com/support
+
+
 Building and Installation
 =========================
-To build a binary RPM* package of this driver, run 'rpmbuild -tb
-e1000e-<x.x.x>.tar.gz', where <x.x.x> is the version number for the driver tar
-file.
 
-Note: For the build to work properly, the currently running kernel MUST match
-the version and configuration of the installed kernel sources. If you have just
-recompiled the kernel reboot the system before building.
-
-- To compile the driver on some kernel/arch combinations, a package with the
-development version of libelf (e.g. libelf-dev, libelf-devel,
-elfutilsl-libelf-devel) may need to be installed.
-
+To build a binary RPM package of this driver
+--------------------------------------------
 Note: RPM functionality has only been tested in Red Hat distributions.
 
+1. Run the following command, where <x.x.x> is the version number for the
+   driver tar file.
 
-1. Move the base driver tar file to the directory of your choice. For
-   example, use '/home/username/e1000e' or '/usr/local/src/e1000e'.
+   # rpmbuild -tb e1000e-<x.x.x>.tar.gz
+
+   NOTE: For the build to work properly, the currently running kernel MUST
+   match the version and configuration of the installed kernel sources. If
+   you have just recompiled the kernel, reboot the system before building.
+
+2. After building the RPM, the last few lines of the tool output contain the
+   location of the RPM file that was built. Install the RPM with one of the
+   following commands, where <RPM> is the location of the RPM file:
+
+   # rpm -Uvh <RPM>
+       or
+   # dnf/yum localinstall <RPM>
+
+NOTES:
+- To compile the driver on some kernel/arch combinations, you may need to
+install a package with the development version of libelf (e.g. libelf-dev,
+libelf-devel, elfutilsl-libelf-devel).
+- When compiling an out-of-tree driver, details will vary by distribution.
+However, you will usually need a kernel-devel RPM or some RPM that provides the
+kernel headers at a minimum. The RPM kernel-devel will usually fill in the link
+at /lib/modules/'uname -r'/build.
+
+
+To manually build the driver
+----------------------------
+1. Move the base driver tar file to the directory of your choice.
+   For example, use '/home/username/e1000e' or '/usr/local/src/e1000e'.
 
 2. Untar/unzip the archive, where <x.x.x> is the version number for the
    driver tar file:
@@ -93,25 +116,27 @@ Note: RPM functionality has only been tested in Red Hat distributions.
    # make install
 
    The binary will be installed as:
-   /lib/modules/<KERNEL
-VERSION>/updates/drivers/net/ethernet/intel/e1000e/e1000e.ko
+   /lib/modules/<KERNEL VER>/updates/drivers/net/ethernet/intel/e1000e/e1000e.ko
 
    The install location listed above is the default location. This may differ
    for various Linux distributions.
 
-5. Load the module using the modprobe command:
+5. Load the module using the modprobe command.
 
-   # modprobe <e1000e> [parameter=port1_value,port2_value]
+   To check the version of the driver and then load it:
 
-   Make sure that any older e1000e drivers are removed from the kernel before
-   loading the new module:
+   # modinfo e1000e
+   # modprobe e1000e [parameter=port1_value,port2_value]
+
+   Alternately, make sure that any older e1000e drivers are removed from the
+   kernel before loading the new module:
 
    # rmmod e1000e; modprobe e1000e
 
 6. Assign an IP address to the interface by entering the following,
-   where ethX is the interface name that was shown in dmesg after modprobe:
+   where <ethX> is the interface name that was shown in dmesg after modprobe:
 
-   # ip address add <IP_address>/<netmask bits> dev ethX
+   # ip address add <IP_address>/<netmask bits> dev <ethX>
 
 7. Verify that the interface works. Enter the following, where IP_address
    is the IP address for another machine on the same subnet as the interface
@@ -119,14 +144,15 @@ VERSION>/updates/drivers/net/ethernet/intel/e1000e/e1000e.ko
 
    # ping <IP_address>
 
-Note: For certain distributions like (but not limited to) RedHat Enterprise
-Linux 7 and Ubuntu, once the driver is installed the initrd/initramfs file may
-need to be updated to prevent the OS loading old versions of the e1000e driver.
-The dracut utility may be used on RedHat distributions:
+Note: For certain distributions like (but not limited to) Red Hat Enterprise
+Linux 7 and Ubuntu, once the driver is installed, you may need to update the
+initrd/initramfs file to prevent the OS loading old versions of the e1000e
+driver. Use the dracut utility on Red Hat distributions:
 	# dracut --force
 
    For Ubuntu:
 	# update-initramfs -u
+
 
 
 Command Line Parameters
@@ -262,7 +288,7 @@ releases of ICH8 systems.
 IntMode
 -------
 Valid Range: 0-2 (0 = Legacy Int, 1 = MSI and 2 = MSI-X)
-IntMode controls allow load time control over the type of interrupt
+IntMode controls the allowed load time control over the type of interrupt
 registered for by the driver. MSI-X is required for multiple queue
 support, and some kernels and combinations of kernel .config options
 will force a lower level of interrupt support.
@@ -295,8 +321,8 @@ speeds.
 
 Example:
 
-# ethtool --show-eee devname
-# ethtool --set-eee devname [eee on|off]
+# ethtool --show-eee <ethX>
+# ethtool --set-eee <ethX> [eee on|off]
 
 
 Node
@@ -317,18 +343,40 @@ allocated causing slower memory access and impacting throughput, CPU, or both.
 Additional Features and Configurations
 ======================================
 
+ethtool
+-------
+The driver utilizes the ethtool interface for driver configuration and
+diagnostics, as well as displaying statistical information. The latest ethtool
+version is required for this functionality. Download it at:
+https://kernel.org/pub/software/network/ethtool/
+
+NOTE: When validating enable/disable tests on some parts (for example, 82578),
+it is necessary to add a few seconds between tests when working with ethtool.
+
+
+Viewing Link Messages
+---------------------
+Link messages will not be displayed to the console if the distribution is
+restricting system messages. In order to see network driver link messages on
+your console, set dmesg to eight by entering the following:
+
+# dmesg -n 8
+
+NOTE: This setting is not saved across reboots.
+
+
 IEEE 1588 Precision Time Protocol (PTP) Hardware Clock (PHC)
 ------------------------------------------------------------
 Precision Time Protocol (PTP) is used to synchronize clocks in a computer
 network. PTP support varies among Intel devices that support this driver. Use
-"ethtool -T <netdev name>" to get a definitive list of PTP capabilities
-supported by the device.
+'ethtool -T <ethX>' to get a definitive list of PTP capabilities supported by
+the device.
 
 E1000E_PTP is a compile time flag. The user can enable it at compile time to
 add support for PTP from the driver. The flag is used by editing the make file
 as follows when it is being compiled:
 
->make CFLAGS_EXTRA="-DE1000E_PTP" install
+# make CFLAGS_EXTRA="-DE1000E_PTP" install
 
 
 Configuring the Driver on Different Distributions
@@ -347,18 +395,7 @@ and want to set the interrupt mode to MSI-X and MSI, respectively, add the
 following to modules.conf or /etc/modprobe.conf:
   alias eth0 e1000e
   alias eth1 e1000e
-  options e1000e InterruptThrottleRate=3,1
-
-
-Viewing Link Messages
----------------------
-Link messages will not be displayed to the console if the distribution is
-restricting system messages. In order to see network driver link messages on
-your console, set dmesg to eight by entering the following:
-
-# dmesg -n 8
-
-NOTE: This setting is not saved across reboots.
+  options e1000e IntMode=2,1
 
 
 Jumbo Frames
@@ -367,18 +404,18 @@ Jumbo Frames support is enabled by changing the Maximum Transmission Unit (MTU)
 to a value larger than the default value of 1500.
 
 Use the ifconfig command to increase the MTU size. For example, enter the
-following where X is the interface number:
+following where <ethX> is the interface number:
 
-# ifconfig ethX mtu 9000 up
+# ifconfig <ethX> mtu 9000 up
 
 Alternatively, you can use the ip command as follows:
 
-# ip link set mtu 9000 dev ethX
-# ip link set up dev ethX
+# ip link set mtu 9000 dev <ethX>
+# ip link set up dev <ethX>
 
 This setting is not saved across reboots. The setting change can be made
 permanent by adding 'MTU=9000' to the following file:
-  /etc/sysconfig/network-scripts/ifcfg-ethX for RHEL
+  /etc/sysconfig/network-scripts/ifcfg-<ethX> for RHEL
       or
   /etc/sysconfig/network/<config_file> for SLES
 
@@ -417,17 +454,6 @@ NOTE: The following adapters limit Jumbo Frames sized packets to a maximum of
   MACSec is enabled on the system.
 
 
-ethtool
--------
-The driver utilizes the ethtool interface for driver configuration and
-diagnostics, as well as displaying statistical information. The latest ethtool
-version is required for this functionality. Download it at:
-https://kernel.org/pub/software/network/ethtool/
-
-NOTE: When validating enable/disable tests on some parts (for example, 82578),
-it is necessary to add a few seconds between tests when working with ethtool.
-
-
 Speed and Duplex Configuration
 ------------------------------
 In addressing speed and duplex configuration issues, you need to distinguish
@@ -453,7 +479,7 @@ following website:
 
 To see the speed configurations your device supports, run the following:
 
-# ethtool ethX
+# ethtool <ethX>
 
 Caution: Only experienced network administrators should force speed and duplex
 or change autonegotiation advertising manually. The settings at the switch must
@@ -466,9 +492,14 @@ will not attempt to auto-negotiate with its link partner since those adapters
 operate only in full duplex and only at their native speed.
 
 
-Enabling Wake on LAN* (WoL)
----------------------------
-WoL is configured through the ethtool* utility. ethtool is included with all
+Wake on LAN (WoL) Support
+-------------------------
+Some adapters do not support Wake on LAN (WoL). To determine if your adapter
+supports WoL, run the following command:
+
+# ethtool <ethX>
+
+WoL is configured through the ethtool utility. ethtool is included with all
 versions of Red Hat after Red Hat 7.2. For other Linux distributions, download
 and install ethtool from the following website:
 https://kernel.org/pub/software/network/ethtool/.
@@ -476,9 +507,9 @@ https://kernel.org/pub/software/network/ethtool/.
 For instructions on enabling WoL with ethtool, refer to the website listed
 above.
 
-WoL will be enabled on the system during the next shut down or reboot. For
-this driver version, in order to enable WoL, the e1000e driver must be loaded
-prior to shutting down or suspending the system.
+WoL will be enabled on the system during the next shutdown or reboot. For this
+driver version, in order to enable WoL, the e1000e driver must be loaded prior
+to shutting down or suspending the system.
 
 NOTE: Wake on LAN is only supported on port A for the following devices:
 - Intel(R) PRO/1000 PT Dual Port Network Connection
@@ -491,7 +522,7 @@ NOTE: Wake on LAN is only supported on port A for the following devices:
 
 NAPI
 ----
-NAPI (Rx polling mode) is supported in the e1000e driver.
+This driver supports NAPI (Rx polling mode).
 To disable NAPI, compile the driver module, passing in a configuration option:
 # make CFLAGS_EXTRA=-DE1000E_NO_NAPI install
 For more information on NAPI, see
@@ -524,7 +555,7 @@ conjunction with the linux driver.
 Detected Tx Unit Hang in Quad Port Adapters
 -------------------------------------------
 In some cases ports 3 and 4 don't pass traffic and report 'Detected Tx Unit
-Hang' followed by 'NETDEV WATCHDOG: ethX: transmit timed out' errors. Ports 1
+Hang' followed by 'NETDEV WATCHDOG: <ethX>: transmit timed out' errors. Ports 1
 and 2 do not show any errors and will pass traffic.
 
 This issue may be resolved by updating to the latest kernel and BIOS. You
@@ -641,7 +672,6 @@ entering the following:
 
 This only works if your kernel's version is higher than 2.4.5.
 
-
 NOTE: This setting is not saved across reboots. The configuration change can be
 made permanent by adding the following line to the file /etc/sysctl.conf:
 
@@ -651,12 +681,12 @@ Another alternative is to install the interfaces in separate broadcast domains
 (either in different switches or in a switch partitioned to VLANs).
 
 
-Disable rx Flow Control with ethtool
+Disable Rx Flow Control with ethtool
 ------------------------------------
 In order to disable receive flow control using ethtool, you must turn off
 auto-negotiation on the same command line:
 
-# ethtool -A ethX autoneg off rx off
+# ethtool -A <ethX> autoneg off rx off
 
 
 Unplugging Network Cable While ethtool -p is Running
@@ -667,18 +697,9 @@ commands, except for control-alt-delete. Restarting the system should resolve
 the issue.
 
 
-MSI-X Issues with Kernels Between 2.6.19 - 2.6.21 (inclusive)
--------------------------------------------------------------
-
-Kernel panics and instability may be observed on any MSI-X hardware if you use
-irqbalance with kernels between 2.6.19 and 2.6.21. If such problems are
-encountered, you may disable the irqbalance daemon or upgrade to a newer
-kernel.
-
-
 Rx Page Allocation Errors
 -------------------------
-'Page allocation failure. order:0' errors may occur under stress. with kernels
+'Page allocation failure. order:0' errors may occur under stress with kernels
 2.6.25 and newer. This is caused by the way the Linux kernel reports this
 stressed condition.
 
@@ -731,18 +752,17 @@ packet buffer sizes and relevant flow control settings are modified
 accordingly.
 
 
-Customer Support
-================
-
+Support
+=======
 For general information, go to the Intel support website at:
 http://www.intel.com/support/
 
 or the Intel Wired Networking project hosted by Sourceforge at:
 http://sourceforge.net/projects/e1000
 
-If an issue is identified with the released source code on the supported
-kernel with a supported adapter, email the specific information related to the
-issue to e1000-devel@lists.sf.net.
+If an issue is identified with the released source code on a supported kernel
+with a supported adapter, email the specific information related to the issue
+to e1000-devel@lists.sf.net.
 
 
 License
@@ -767,8 +787,8 @@ Copyright(c) 1999 - 2019 Intel Corporation.
 
 Trademarks
 ==========
-Intel and Itanium are trademarks or registered trademarks of Intel Corporation
-or its subsidiaries in the United States and/or other countries.
+Intel is a trademark or registered trademark of Intel Corporation or its
+subsidiaries in the United States and/or other countries.
 
 * Other names and brands may be claimed as the property of others.
 
