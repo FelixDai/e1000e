@@ -1,5 +1,4 @@
-/*
- * Intel PRO/1000 Linux driver
+/* Intel PRO/1000 Linux driver
  * Copyright(c) 1999 - 2015 Intel Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -111,8 +110,6 @@
 #define NVM_SIZE_MULTIPLIER 4096	/*multiplier for NVMS field */
 #define E1000_FLASH_BASE_ADDR 0xE000	/*offset of NVM access regs */
 #define E1000_CTRL_EXT_NVMVS 0x3	/*NVM valid sector */
-#define E1000_SPT_B_STEP_REV	0x10	/*SPT B step Rev ID */
-#define E1000_TARC0_CB_MULTIQ_2_REQ	(1 << 29)
 #define E1000_TARC0_CB_MULTIQ_3_REQ	(1 << 28 | 1 << 29)
 #define PCIE_ICH8_SNOOP_ALL	PCIE_NO_SNOOP_ALL
 

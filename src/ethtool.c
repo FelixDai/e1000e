@@ -1,5 +1,4 @@
-/*
- * Intel PRO/1000 Linux driver
+/* Intel PRO/1000 Linux driver
  * Copyright(c) 1999 - 2015 Intel Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -1697,7 +1696,9 @@ static int e1000_setup_loopback_test(struct e1000_adapter *adapter)
 		fext_nvm11 |= E1000_FEXTNVM11_DISABLE_MULR_FIX;
 		ew32(FEXTNVM11, fext_nvm11);
 		tarc0 = er32(TARC(0));
+		/* clear bits 28 & 29 (control of MULR concurrent requests) */
 		tarc0 &= 0xcfffffff;
+		/* set bit 29 (value of MULR requests is now 2) */
 		tarc0 |= 0x20000000;
 		ew32(TARC(0), tarc0);
 	}
@@ -1738,6 +1739,8 @@ static void e1000_loopback_cleanup(struct e1000_adapter *adapter)
 		fext_nvm11 &= ~E1000_FEXTNVM11_DISABLE_MULR_FIX;
 		ew32(FEXTNVM11, fext_nvm11);
 		tarc0 = er32(TARC(0));
+		/* clear bits 28 & 29 (control of MULR concurrent requests) */
+		/* set bit 29 (value of MULR requests is now 0) */
 		tarc0 &= 0xcfffffff;
 		ew32(TARC(0), tarc0);
 		/* fall through */
