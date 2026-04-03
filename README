@@ -1,3 +1,9 @@
+##############################################################################
+# Archive notes                                                              #
+# Kernel support in Linux 6.16 and later is mature enough that this project  #
+# is archived.                                                               #
+##############################################################################
+
 e1000e Linux* Base Driver for Intel(R) Network Connection
 
 =========================================================
