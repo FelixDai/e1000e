@@ -4,7 +4,7 @@ e1000e Linux* Base Driver for Intel(R) Network Connection
 
 ================================================================================
 
-May 2, 2016
+November 11, 2016
 
 ================================================================================
 
@@ -336,7 +336,9 @@ IEEE 1588 Precision Time Protocol (PTP) Hardware Clock (PHC)
 ------------------------------------------------------------
 
 Precision Time Protocol (PTP) is used to synchronize clocks in a computer
-network and is supported in the e1000e driver.
+network. PTP support varies among Intel devices that support this driver.
+Use "ethtool -T <netdev name>" to get a definitive list of PTP capabilities
+supported by the device.
 
 E1000E_PTP is a compile time flag. The user can enable it at compile time to add
 support for PTP from the driver. The flag is used by editing the make file
@@ -385,6 +387,9 @@ Use the ifconfig command to increase the MTU size. For example, enter the
 following where <x> is the interface number:
 
    ifconfig eth<x> mtu 9000 up
+Alternatively, you can use the ip command as follows:
+   ip link set mtu 9000 dev eth<x>
+   ip link set up dev eth<x>
 
 This setting is not saved across reboots. The setting change can be made
 permanent by adding 'MTU=9000' to the file:
@@ -701,8 +706,9 @@ kernel.
 Rx Page Allocation Errors
 -------------------------
 
-'Page allocation failure. order:0' errors may occur under stress with kernels
-2.6.25 and newer. This is caused by the way the Linux kernel reports this
+'Page allocation failure. order:0' errors may occur under stress.
+with kernels 2.6.25 and newer.
+This is caused by the way the Linux kernel reports this
 stressed condition.
 
 Network Throughput Degradation Observed with Onboard Video Versus Add-in Video
@@ -796,7 +802,7 @@ Trademarks
 ----------
 
 Intel, Itanium, and Pentium are trademarks or registered trademarks of Intel
-Corporation or its subsidiaries in the United States and other countries.
+Corporation or its subsidiaries in the United States and/or other countries.
 
 * Other names and brands may be claimed as the property of others.
 

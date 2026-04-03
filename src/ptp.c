@@ -1,5 +1,5 @@
 /* Intel PRO/1000 Linux driver
- * Copyright(c) 1999 - 2016 Intel Corporation.
+ * Copyright(c) 1999 - 2017 Intel Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -136,8 +136,8 @@ static int e1000e_phc_get_syncdevicetime(ktime_t * device,
 	unsigned long flags;
 	int i;
 	u32 tsync_ctrl;
-	cycle_t dev_cycles;
-	cycle_t sys_cycles;
+	u64 dev_cycles;
+	u64 sys_cycles;
 
 	tsync_ctrl = er32(TSYNCTXCTL);
 	tsync_ctrl |= E1000_TSYNCTXCTL_START_SYNC |
@@ -237,6 +237,31 @@ static int e1000e_phc_settime(struct ptp_clock_info *ptp,
 	return 0;
 }
 
+#ifndef HAVE_PTP_CLOCK_INFO_GETTIME64
+static int e1000e_phc_gettime32(struct ptp_clock_info *ptp, struct timespec *ts)
+{
+	struct timespec64 ts64;
+	int err;
+
+	err = e1000e_phc_gettime(ptp, &ts64);
+	if (err)
+		return err;
+
+	*ts = timespec64_to_timespec(ts64);
+
+	return 0;
+}
+
+static int e1000e_phc_settime32(struct ptp_clock_info *ptp,
+				const struct timespec *ts)
+{
+	struct timespec64 ts64;
+
+	ts64 = timespec_to_timespec64(*ts);
+	return e1000e_phc_settime(ptp, &ts64);
+}
+#endif
+
 /**
  * e1000e_phc_enable - enable or disable an ancillary feature
  * @ptp: ptp clock structure
@@ -260,16 +285,10 @@ static void e1000e_systim_overflow_work(struct work_struct *work)
 	struct e1000_hw *hw = &adapter->hw;
 	struct timespec64 ts;
 
-#ifdef HAVE_PTP_CLOCK_INFO_GETTIME64
-	adapter->ptp_clock_info.gettime64(&adapter->ptp_clock_info, &ts);
+	e1000e_phc_gettime(&adapter->ptp_clock_info, &ts);
 
 	e_dbg("SYSTIM overflow check at %lld.%09lu\n",
-	      (long long) ts.tv_sec, ts.tv_nsec);
-#else
-	adapter->ptp_clock_info.gettime(&adapter->ptp_clock_info, &ts);
-
-	e_dbg("SYSTIM overflow check at %ld.%09lu\n", ts.tv_sec, ts.tv_nsec);
-#endif
+	      (long long)ts.tv_sec, ts.tv_nsec);
 
 	schedule_delayed_work(&adapter->systim_overflow_work,
 			      E1000_SYSTIM_OVERFLOW_PERIOD);
@@ -290,8 +309,8 @@ static const struct ptp_clock_info e1000e_ptp_clock_info = {
 	.gettime64	= e1000e_phc_gettime,
 	.settime64	= e1000e_phc_settime,
 #else
-	.gettime	= e1000e_phc_gettime,
-	.settime	= e1000e_phc_settime,
+	.gettime	= e1000e_phc_gettime32,
+	.settime	= e1000e_phc_settime32,
 #endif
 	.enable		= e1000e_phc_enable,
 };
@@ -323,8 +342,7 @@ void e1000e_ptp_init(struct e1000_adapter *adapter)
 	case e1000_pch2lan:
 	case e1000_pch_lpt:
 	case e1000_pch_spt:
-		if (((hw->mac.type != e1000_pch_lpt) &&
-		     (hw->mac.type != e1000_pch_spt)) ||
+		if ((hw->mac.type < e1000_pch_lpt) ||
 		    (er32(TSYNCRXCTL) & E1000_TSYNCRXCTL_SYSCFI)) {
 			adapter->ptp_clock_info.max_adj = 24000000 - 1;
 			break;

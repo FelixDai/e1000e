@@ -1,5 +1,5 @@
 /* Intel PRO/1000 Linux driver
- * Copyright(c) 1999 - 2016 Intel Corporation.
+ * Copyright(c) 1999 - 2017 Intel Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -53,7 +53,7 @@
 #define DRV_EXTRAVERSION ""
 #endif
 
-#define DRV_VERSION "3.3.5.3" DRV_EXTRAVERSION
+#define DRV_VERSION "3.3.5.10" DRV_EXTRAVERSION
 char e1000e_driver_name[] = "e1000e";
 const char e1000e_driver_version[] = DRV_VERSION;
 
@@ -245,14 +245,9 @@ static void e1000e_dump(struct e1000_adapter *adapter)
 	/* Print netdevice Info */
 	if (netdev) {
 		dev_info(pci_dev_to_dev(adapter->pdev), "Net device Info\n");
-		pr_info("Device Name     state            trans_start      last_rx\n");
-		pr_info("%-15s %016lX %016lX %016lX\n",
-#ifdef HAVE_NETIF_TRANS_UPDATE
-			netdev->name, netdev->state, dev_trans_start(netdev),
-#else
-			netdev->name, netdev->state, netdev->trans_start,
-#endif
-			netdev->last_rx);
+		pr_info("Device Name     state            trans_start\n");
+		pr_info("%-15s %016lX %016lX\n",
+			netdev->name, netdev->state, dev_trans_start(netdev));
 	}
 
 	/* Print Registers */
@@ -1969,8 +1964,7 @@ static irqreturn_t e1000_intr_msi(int __always_unused irq, void *data)
 	}
 
 	/* Reset on uncorrectable ECC error */
-	if ((icr & E1000_ICR_ECCER) && ((hw->mac.type == e1000_pch_lpt) ||
-					(hw->mac.type == e1000_pch_spt))) {
+	if ((icr & E1000_ICR_ECCER) && (hw->mac.type >= e1000_pch_lpt)) {
 		u32 pbeccsts = er32(PBECCSTS);
 
 		adapter->corr_errors +=
@@ -2072,8 +2066,7 @@ static irqreturn_t e1000_intr(int __always_unused irq, void *data)
 	}
 
 	/* Reset on uncorrectable ECC error */
-	if ((icr & E1000_ICR_ECCER) && ((hw->mac.type == e1000_pch_lpt) ||
-					(hw->mac.type == e1000_pch_spt))) {
+	if ((icr & E1000_ICR_ECCER) && (hw->mac.type >= e1000_pch_lpt)) {
 		u32 pbeccsts = er32(PBECCSTS);
 
 		adapter->corr_errors +=
@@ -2343,12 +2336,8 @@ static int e1000_request_msix(struct e1000_adapter *adapter)
 	struct net_device *netdev = adapter->netdev;
 	int err = 0, vector = 0;
 
-	if (strlen(netdev->name) < (IFNAMSIZ - 5))
-		snprintf(adapter->rx_ring->name,
-			 sizeof(adapter->rx_ring->name) - 1,
-			 "%s-rx-0", netdev->name);
-	else
-		memcpy(adapter->rx_ring->name, netdev->name, IFNAMSIZ);
+	snprintf(adapter->rx_ring->name,
+		 sizeof(adapter->rx_ring->name), "%s-rx-0", netdev->name);
 	err = request_irq(adapter->msix_entries[vector].vector,
 			  e1000_intr_msix_rx, 0, adapter->rx_ring->name,
 			  netdev);
@@ -2359,12 +2348,8 @@ static int e1000_request_msix(struct e1000_adapter *adapter)
 	adapter->rx_ring->itr_val = adapter->itr;
 	vector++;
 
-	if (strlen(netdev->name) < (IFNAMSIZ - 5))
-		snprintf(adapter->tx_ring->name,
-			 sizeof(adapter->tx_ring->name) - 1,
-			 "%s-tx-0", netdev->name);
-	else
-		memcpy(adapter->tx_ring->name, netdev->name, IFNAMSIZ);
+	snprintf(adapter->tx_ring->name,
+		 sizeof(adapter->tx_ring->name), "%s-tx-0", netdev->name);
 	err = request_irq(adapter->msix_entries[vector].vector,
 			  e1000_intr_msix_tx, 0, adapter->tx_ring->name,
 			  netdev);
@@ -2477,8 +2462,7 @@ static void e1000_irq_enable(struct e1000_adapter *adapter)
 	if (adapter->msix_entries) {
 		ew32(EIAC_82574, adapter->eiac_mask & E1000_EIAC_MASK_82574);
 		ew32(IMS, adapter->eiac_mask | E1000_IMS_LSC);
-	} else if ((hw->mac.type == e1000_pch_lpt) ||
-		   (hw->mac.type == e1000_pch_spt)) {
+	} else if (hw->mac.type >= e1000_pch_lpt) {
 		ew32(IMS, IMS_ENABLE_MASK | E1000_IMS_ECCER);
 	} else {
 		ew32(IMS, IMS_ENABLE_MASK);
@@ -3418,8 +3402,8 @@ static void e1000_configure_tx(struct e1000_adapter *adapter)
 
 	hw->mac.ops.config_collision_dist(hw);
 
-	/* SPT Si errata workaround to avoid data corruption */
-	if (hw->mac.type == e1000_pch_spt) {
+	/* SPT and CNP Si errata workaround to avoid data corruption */
+	if (hw->mac.type >= e1000_pch_spt) {
 		u32 reg_val;
 
 		reg_val = er32(IOSFPC);
@@ -3980,8 +3964,7 @@ s32 e1000e_get_base_timinca(struct e1000_adapter *adapter, u32 *timinca)
 	/* Make sure clock is enabled on I217/I218/I219  before checking
 	 * the frequency
 	 */
-	if (((hw->mac.type == e1000_pch_lpt) ||
-	     (hw->mac.type == e1000_pch_spt)) &&
+	if ((hw->mac.type >= e1000_pch_lpt) &&
 	    !(er32(TSYNCTXCTL) & E1000_TSYNCTXCTL_ENABLED) &&
 	    !(er32(TSYNCRXCTL) & E1000_TSYNCRXCTL_ENABLED)) {
 		u32 fextnvm7 = er32(FEXTNVM7);
@@ -3994,27 +3977,33 @@ s32 e1000e_get_base_timinca(struct e1000_adapter *adapter, u32 *timinca)
 
 	switch (hw->mac.type) {
 	case e1000_pch2lan:
+		/* Stable 96MHz frequency */
+		incperiod = INCPERIOD_96MHZ;
+		incvalue = INCVALUE_96MHZ;
+		shift = INCVALUE_SHIFT_96MHZ;
+		adapter->cc.shift = shift + INCPERIOD_SHIFT_96MHZ;
+		break;
 	case e1000_pch_lpt:
 		if (er32(TSYNCRXCTL) & E1000_TSYNCRXCTL_SYSCFI) {
 			/* Stable 96MHz frequency */
-			incperiod = INCPERIOD_96MHz;
-			incvalue = INCVALUE_96MHz;
-			shift = INCVALUE_SHIFT_96MHz;
-			adapter->cc.shift = shift + INCPERIOD_SHIFT_96MHz;
+			incperiod = INCPERIOD_96MHZ;
+			incvalue = INCVALUE_96MHZ;
+			shift = INCVALUE_SHIFT_96MHZ;
+			adapter->cc.shift = shift + INCPERIOD_SHIFT_96MHZ;
 		} else {
 			/* Stable 25MHz frequency */
-			incperiod = INCPERIOD_25MHz;
-			incvalue = INCVALUE_25MHz;
-			shift = INCVALUE_SHIFT_25MHz;
+			incperiod = INCPERIOD_25MHZ;
+			incvalue = INCVALUE_25MHZ;
+			shift = INCVALUE_SHIFT_25MHZ;
 			adapter->cc.shift = shift;
 		}
 		break;
 	case e1000_pch_spt:
 		if (er32(TSYNCRXCTL) & E1000_TSYNCRXCTL_SYSCFI) {
 			/* Stable 24MHz frequency */
-			incperiod = INCPERIOD_24MHz;
-			incvalue = INCVALUE_24MHz;
-			shift = INCVALUE_SHIFT_24MHz;
+			incperiod = INCPERIOD_24MHZ;
+			incvalue = INCVALUE_24MHZ;
+			shift = INCVALUE_SHIFT_24MHZ;
 			adapter->cc.shift = shift;
 			break;
 		}
@@ -4022,9 +4011,9 @@ s32 e1000e_get_base_timinca(struct e1000_adapter *adapter, u32 *timinca)
 	case e1000_82574:
 	case e1000_82583:
 		/* Stable 25MHz frequency */
-		incperiod = INCPERIOD_25MHz;
-		incvalue = INCVALUE_25MHz;
-		shift = INCVALUE_SHIFT_25MHz;
+		incperiod = INCPERIOD_25MHZ;
+		incvalue = INCVALUE_25MHZ;
+		shift = INCVALUE_SHIFT_25MHZ;
 		adapter->cc.shift = shift;
 		break;
 	default:
@@ -4576,7 +4565,7 @@ void e1000e_reset(struct e1000_adapter *adapter)
 		}
 	}
 
-	if (hw->mac.type == e1000_pch_spt)
+	if (hw->mac.type >= e1000_pch_spt)
 		e1000_flush_desc_rings(adapter);
 	/* Allow time for pending master requests to run */
 	mac->ops.reset_hw(hw);
@@ -4661,7 +4650,7 @@ void e1000e_reset(struct e1000_adapter *adapter)
 		phy_data &= ~IGP02E1000_PM_SPD;
 		e1e_wphy(hw, IGP02E1000_PHY_POWER_MGMT, phy_data);
 	}
-	if (hw->mac.type == e1000_pch_spt && adapter->int_mode == 0) {
+	if (hw->mac.type >= e1000_pch_spt && adapter->int_mode == 0) {
 		u32 reg;
 
 		/* Fextnvm7 @ 0xe4[2] = 1 */
@@ -4806,13 +4795,13 @@ void e1000e_down(struct e1000_adapter *adapter, bool reset)
 	if (!pci_channel_offline(adapter->pdev)) {
 		if (reset)
 			e1000e_reset(adapter);
-		else if (hw->mac.type == e1000_pch_spt)
+		else if (hw->mac.type >= e1000_pch_spt)
 			e1000_flush_desc_rings(adapter);
 	}
 #else
 	if (reset)
 		e1000e_reset(adapter);
-	else if (hw->mac.type == e1000_pch_spt)
+	else if (hw->mac.type >= e1000_pch_spt)
 		e1000_flush_desc_rings(adapter);
 #endif
 	e1000_clean_tx_ring(adapter->tx_ring);
@@ -4833,24 +4822,24 @@ void e1000e_reinit_locked(struct e1000_adapter *adapter)
 /**
  * e1000e_sanitize_systim - sanitize raw cycle counter reads
  * @hw: pointer to the HW structure
- * @systim: cycle_t value read, sanitized and returned
+ * @systim: time value read, sanitized and returned
  *
  * Errata for 82574/82583 possible bad bits read from SYSTIMH/L:
  * check to see that the time is incrementing at a reasonable
  * rate and is a multiple of incvalue.
  **/
-static cycle_t e1000e_sanitize_systim(struct e1000_hw *hw, cycle_t systim)
+static u64 e1000e_sanitize_systim(struct e1000_hw *hw, u64 systim)
 {
 	u64 time_delta, rem, temp;
-	cycle_t systim_next;
+	u64 systim_next;
 	u32 incvalue;
 	int i;
 
 	incvalue = er32(TIMINCA) & E1000_TIMINCA_INCVALUE_MASK;
 	for (i = 0; i < E1000_MAX_82574_SYSTIM_REREADS; i++) {
 		/* latch SYSTIMH on read of SYSTIML */
-		systim_next = (cycle_t)er32(SYSTIML);
-		systim_next |= (cycle_t)er32(SYSTIMH) << 32;
+		systim_next = (u64)er32(SYSTIML);
+		systim_next |= (u64)er32(SYSTIMH) << 32;
 
 		time_delta = systim_next - systim;
 		temp = time_delta;
@@ -4872,13 +4861,13 @@ static cycle_t e1000e_sanitize_systim(struct e1000_hw *hw, cycle_t systim)
  * e1000e_cyclecounter_read - read raw cycle counter (used by time counter)
  * @cc: cyclecounter structure
  **/
-static cycle_t e1000e_cyclecounter_read(const struct cyclecounter *cc)
+static u64 e1000e_cyclecounter_read(const struct cyclecounter *cc)
 {
 	struct e1000_adapter *adapter = container_of(cc, struct e1000_adapter,
 						     cc);
 	struct e1000_hw *hw = &adapter->hw;
 	u32 systimel, systimeh;
-	cycle_t systim;
+	u64 systim;
 	/* SYSTIMH latching upon SYSTIML read does not work well.
 	 * This means that if SYSTIML overflows after we read it but before
 	 * we read SYSTIMH, the value of SYSTIMH has been incremented and we
@@ -4899,8 +4888,8 @@ static cycle_t e1000e_cyclecounter_read(const struct cyclecounter *cc)
 			systimel = systimel_2;
 		}
 	}
-	systim = (cycle_t)systimel;
-	systim |= (cycle_t)systimeh << 32;
+	systim = (u64)systimel;
+	systim |= (u64)systimeh << 32;
 
 	if (adapter->flags2 & FLAG2_CHECK_SYSTIM_OVERFLOW)
 		systim = e1000e_sanitize_systim(hw, systim);
@@ -5606,8 +5595,7 @@ void e1000e_update_stats(struct e1000_adapter *adapter)
 	adapter->stats.mgpdc += er32(MGTPDC);
 
 	/* Correctable ECC Errors */
-	if ((hw->mac.type == e1000_pch_lpt) ||
-	    (hw->mac.type == e1000_pch_spt)) {
+	if (hw->mac.type >= e1000_pch_lpt) {
 		u32 pbeccsts = er32(PBECCSTS);
 
 		adapter->corr_errors +=
@@ -6649,8 +6637,13 @@ static void e1000_reset_task(struct work_struct *work)
  *
  * Returns the address of the device statistics structure.
  **/
+#ifdef HAVE_VOID_NDO_GET_STATS64
+void e1000e_get_stats64(struct net_device *netdev,
+			struct rtnl_link_stats64 *stats)
+#else
 struct rtnl_link_stats64 *e1000e_get_stats64(struct net_device *netdev,
 					     struct rtnl_link_stats64 *stats)
+#endif				/* HAVE_VOID_NDO_GET_STATS64 */
 {
 	struct e1000_adapter *adapter = netdev_priv(netdev);
 
@@ -6687,7 +6680,9 @@ struct rtnl_link_stats64 *e1000e_get_stats64(struct net_device *netdev,
 	/* Tx Dropped needs to be maintained elsewhere */
 
 	spin_unlock(&adapter->stats64_lock);
+#ifndef HAVE_VOID_NDO_GET_STATS64
 	return stats;
+#endif /* HAVE_VOID_NDO_GET_STATS64 */
 }
 #else /* HAVE_NDO_GET_STATS64 */
 /**
@@ -7153,8 +7148,7 @@ static int __e1000_shutdown(struct pci_dev *pdev, bool runtime)
 
 	if (adapter->hw.phy.type == e1000_phy_igp_3) {
 		e1000e_igp3_phy_powerdown_workaround_ich8lan(&adapter->hw);
-	} else if ((hw->mac.type == e1000_pch_lpt) ||
-		   (hw->mac.type == e1000_pch_spt)) {
+	} else if (hw->mac.type >= e1000_pch_lpt) {
 		if (!(wufc & (E1000_WUFC_EX | E1000_WUFC_MC | E1000_WUFC_BC)))
 			/* ULP does not support wake from unicast, multicast
 			 * or broadcast.
@@ -8687,7 +8681,7 @@ static int __init e1000_init_module(void)
 {
 	pr_info("Intel(R) PRO/1000 Network Driver - %s\n",
 		e1000e_driver_version);
-	pr_info("Copyright(c) 1999 - 2016 Intel Corporation.\n");
+	pr_info("Copyright(c) 1999 - 2017 Intel Corporation.\n");
 
 #ifndef USE_REBOOT_NOTIFIER
 	return pci_register_driver(&e1000_driver);
