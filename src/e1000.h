@@ -552,7 +552,7 @@ extern void e1000e_led_blink_task(struct work_struct *work);
 extern int ethtool_ioctl(struct ifreq *ifr);
 #endif
 
-int e1000e_up(struct e1000_adapter *adapter);
+void e1000e_up(struct e1000_adapter *adapter);
 void e1000e_down(struct e1000_adapter *adapter, bool reset);
 void e1000e_reinit_locked(struct e1000_adapter *adapter);
 void e1000e_reset(struct e1000_adapter *adapter);

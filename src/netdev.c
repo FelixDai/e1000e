@@ -53,7 +53,7 @@
 #define DRV_EXTRAVERSION ""
 #endif
 
-#define DRV_VERSION "3.2.7.1" DRV_EXTRAVERSION
+#define DRV_VERSION "3.3.1" DRV_EXTRAVERSION
 char e1000e_driver_name[] = "e1000e";
 const char e1000e_driver_version[] = DRV_VERSION;
 
@@ -2172,8 +2172,10 @@ static irqreturn_t e1000_intr_msix_rx(int __always_unused irq, void *data)
 	 * previous interrupt.
 	 */
 	if (rx_ring->set_itr) {
-		writel(1000000000 / (rx_ring->itr_val * 256),
-		       rx_ring->itr_register);
+		u32 itr = rx_ring->itr_val ?
+		    1000000000 / (rx_ring->itr_val * 256) : 0;
+
+		writel(itr, rx_ring->itr_register);
 		rx_ring->set_itr = 0;
 	}
 #ifdef CONFIG_E1000E_NAPI
@@ -2950,7 +2952,7 @@ static int e1000e_poll(struct napi_struct *napi, int weight)
 	if (work_done < weight) {
 		if (adapter->itr_setting & 3)
 			e1000_set_itr(adapter);
-		napi_complete(napi);
+		napi_complete_done(napi, work_done);
 		if (!test_bit(__E1000_DOWN, &adapter->state)) {
 			if (adapter->msix_entries)
 				ew32(IMS, adapter->rx_ring->ims_val);
@@ -4643,7 +4645,7 @@ void e1000e_reset(struct e1000_adapter *adapter)
 
 }
 
-int e1000e_up(struct e1000_adapter *adapter)
+void e1000e_up(struct e1000_adapter *adapter)
 {
 	struct e1000_hw *hw = &adapter->hw;
 
@@ -4663,8 +4665,6 @@ int e1000e_up(struct e1000_adapter *adapter)
 		ew32(ICS, E1000_ICS_LSC | E1000_ICR_OTHER);
 	else
 		ew32(ICS, E1000_ICS_LSC);
-
-	return 0;
 }
 
 static void e1000e_flush_descriptors(struct e1000_adapter *adapter)
@@ -4813,7 +4813,9 @@ static cycle_t e1000e_cyclecounter_read(const struct cyclecounter *cc)
 		systim = (cycle_t)systimel_1;
 		systim |= (cycle_t)systimeh << 32;
 	} else {
-		/* There was an overflow, read again SYSTIMH, and use systimel_2 */
+		/* There was an overflow, read again SYSTIMH, and use
+		 * systimel_2
+		 */
 		systimeh = er32(SYSTIMH);
 		systim = (cycle_t)systimel_2;
 		systim |= (cycle_t)systimeh << 32;
@@ -6288,11 +6290,13 @@ static void e1000_tx_queue(struct e1000_ring *tx_ring, int tx_flags, int count)
 	wmb();
 
 	tx_ring->next_to_use = i;
+#ifndef	HAVE_SKB_XMIT_MORE
 	if (adapter->flags2 & FLAG2_PCIM2PCI_ARBITER_WA)
 		e1000e_update_tdt_wa(tx_ring, i);
 	else
 		writel(i, tx_ring->tail);
 	mmiowb();
+#endif
 }
 
 #define MINIMUM_DHCP_PACKET_SIZE 282
@@ -6526,6 +6530,22 @@ static netdev_tx_t e1000_xmit_frame(struct sk_buff *skb,
 				     DIV_ROUND_UP(PAGE_SIZE,
 						  adapter->tx_fifo_limit) + 2));
 
+#ifdef HAVE_SKB_XMIT_MORE
+		if (!skb->xmit_more ||
+		    netif_xmit_stopped(netdev_get_tx_queue(netdev, 0))) {
+			if (adapter->flags2 & FLAG2_PCIM2PCI_ARBITER_WA)
+				e1000e_update_tdt_wa(tx_ring,
+						     tx_ring->next_to_use);
+			else
+				writel(tx_ring->next_to_use, tx_ring->tail);
+
+			/* we need this if more than one processor can write
+			 * to our tail at a time, it synchronizes IO on
+			 *IA64/Altix systems
+			 */
+			mmiowb();
+		}
+#endif
 	} else {
 		dev_kfree_skb_any(skb);
 		tx_ring->buffer_info[first].time_stamp = 0;
@@ -7095,6 +7115,7 @@ static int __e1000_shutdown(struct pci_dev *pdev, bool runtime)
 	if ((hw->phy.type >= e1000_phy_i217) &&
 	    adapter->eee_advert && hw->dev_spec.ich8lan.eee_lp_ability) {
 		u16 lpi_ctrl = 0;
+
 		retval = hw->phy.ops.acquire(hw);
 		if (!retval) {
 			retval = e1e_rphy_locked(hw, I82579_LPI_CTRL,
@@ -7443,7 +7464,7 @@ static int e1000e_pm_runtime_resume(struct device *dev)
 		return rc;
 
 	if (netdev->flags & IFF_UP)
-		rc = e1000e_up(adapter);
+		e1000e_up(adapter);
 
 	return rc;
 }
@@ -7504,7 +7525,7 @@ static int e1000e_pm_runtime_resume(struct device *dev)
 		return rc;
 
 	if (netdev->flags & IFF_UP)
-		rc = e1000e_up(adapter);
+		e1000e_up(adapter);
 
 	return rc;
 }
@@ -7727,13 +7748,8 @@ static void e1000_io_resume(struct pci_dev *pdev)
 
 	e1000_init_manageability_pt(adapter);
 
-	if (netif_running(netdev)) {
-		if (e1000e_up(adapter)) {
-			dev_err(pci_dev_to_dev(pdev),
-				"can't bring device back up after reset\n");
-			return;
-		}
-	}
+	if (netif_running(netdev))
+		e1000e_up(adapter);
 
 	netif_device_attach(netdev);
 
@@ -7790,7 +7806,8 @@ static void e1000_eeprom_checks(struct e1000_adapter *adapter)
 	}
 }
 
-#ifdef HAVE_NDO_SET_FEATURES
+#if defined(HAVE_NDO_SET_FEATURES) && !defined(HAVE_RHEL6_NET_DEVICE_OPS_EXT)
+
 static netdev_features_t e1000_fix_features(struct net_device *netdev,
 					    netdev_features_t features)
 {
@@ -7876,10 +7893,15 @@ static const struct net_device_ops e1000e_netdev_ops = {
 #ifdef CONFIG_NET_POLL_CONTROLLER
 	.ndo_poll_controller	= e1000_netpoll,
 #endif
-#ifdef HAVE_NDO_SET_FEATURES
+#if defined(HAVE_NDO_SET_FEATURES) && !defined(HAVE_RHEL6_NET_DEVICE_OPS_EXT)
 	.ndo_set_features = e1000_set_features,
 	.ndo_fix_features = e1000_fix_features,
 #endif /* HAVE_NDO_SET_FEATURES */
+#ifdef HAVE_NDO_FEATURES_CHECK
+#ifdef HAVE_PASSTHRU_FEATURES_CHECK
+	.ndo_features_check	= passthru_features_check,
+#endif
+#endif /*HAVE_NDO_FEATURES_CHECK*/
 };
 
 #endif /* HAVE_NET_DEVICE_OPS */
@@ -8099,7 +8121,7 @@ static int e1000_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 #endif
 			    NETIF_F_HW_CSUM);
 
-#ifdef HAVE_NDO_SET_FEATURES
+#if defined(HAVE_NDO_SET_FEATURES) && !defined(HAVE_RHEL6_NET_DEVICE_OPS_EXT)
 	/* Set user-changeable features (subset of all device features) */
 	netdev->hw_features = netdev->features;
 	netdev->hw_features |= NETIF_F_RXFCS;
@@ -8506,6 +8528,7 @@ static const struct pci_device_id e1000_pci_tbl[] = {
 	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_PCH_SPT_I219_V), board_pch_spt },
 	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_PCH_SPT_I219_LM2), board_pch_spt },
 	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_PCH_SPT_I219_V2), board_pch_spt },
+	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_PCH_LBG_I219_LM3), board_pch_spt },
 
 	{ 0, 0, 0, 0, 0, 0, 0 }	/* terminate list */
 };
@@ -8562,18 +8585,18 @@ static struct pci_driver e1000_driver = {
  **/
 static int __init e1000_init_module(void)
 {
-	int ret;
-
 	pr_info("Intel(R) PRO/1000 Network Driver - %s\n",
 		e1000e_driver_version);
 	pr_info("Copyright(c) 1999 - 2015 Intel Corporation.\n");
-	ret = pci_register_driver(&e1000_driver);
-#ifdef USE_REBOOT_NOTIFIER
+
+#ifndef USE_REBOOT_NOTIFIER
+	return pci_register_driver(&e1000_driver);
+#else
+	int ret = pci_register_driver(&e1000_driver);
 	if (ret >= 0)
 		register_reboot_notifier(&e1000_notifier_reboot);
-#endif
-
 	return ret;
+#endif
 }
 module_init(e1000_init_module);
 

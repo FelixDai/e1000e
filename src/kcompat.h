@@ -4259,11 +4259,7 @@ static inline void __kc_skb_set_hash(struct sk_buff __maybe_unused * skb,
 }
 #endif /* !skb_set_hash */
 
-#else
-
-#ifndef HAVE_ENCAP_TSO_OFFLOAD
-#define HAVE_ENCAP_TSO_OFFLOAD
-#endif /* HAVE_ENCAP_TSO_OFFLOAD */
+#else /* RHEL_RELEASE_CODE >= 7.0 || SLE_VERSION_CODE >= 12.0 */
 
 #ifndef HAVE_VXLAN_RX_OFFLOAD
 #define HAVE_VXLAN_RX_OFFLOAD
@@ -4272,7 +4268,7 @@ static inline void __kc_skb_set_hash(struct sk_buff __maybe_unused * skb,
 #ifndef HAVE_VXLAN_CHECKS
 #define HAVE_VXLAN_CHECKS
 #endif /* HAVE_VXLAN_CHECKS */
-#endif /* !(RHEL_RELEASE_CODE&&RHEL_RELEASE_CODE>=RHEL_RELEASE_VERSION(7,0)) */
+#endif /* !(RHEL_RELEASE_CODE >= 7.0 && SLE_VERSION_CODE >= 12.0) */
 
 #ifndef pci_enable_msix_range
 extern int __kc_pci_enable_msix_range(struct pci_dev *dev,
@@ -4509,6 +4505,14 @@ extern unsigned int __kc_eth_get_headlen(unsigned char *data,
 /* netdev_phys_port_id renamed to netdev_phys_item_id */
 #define netdev_phys_item_id netdev_phys_port_id
 
+static inline void _kc_napi_complete_done(struct napi_struct *napi,
+					  int __always_unused work_done)
+{
+	napi_complete(napi);
+}
+
+#define napi_complete_done _kc_napi_complete_done
+
 #ifndef NETDEV_RSS_KEY_LEN
 #define NETDEV_RSS_KEY_LEN (13 * 4)
 #endif
@@ -4574,12 +4578,16 @@ static inline struct sk_buff *__kc_napi_alloc_skb(struct napi_struct *napi,
 #endif /* napi_alloc_skb */
 #define HAVE_CONFIG_PM_RUNTIME
 #if RHEL_RELEASE_CODE && (RHEL_RELEASE_CODE > RHEL_RELEASE_VERSION(7,1))
-#define NDO_BRIDGE_GETLINK_HAS_FILTER_MASK_PARAM
+#define NDO_DFLT_BRIDGE_GETLINK_HAS_BRFLAGS
 #define HAVE_RXFH_HASHFUNC
 #endif /* RHEL_RELEASE_CODE */
+#ifndef napi_schedule_irqoff
+#define napi_schedule_irqoff	napi_schedule
+#endif
 #else /* 3.19.0 */
 #define HAVE_NDO_FDB_ADD_VID
 #define HAVE_RXFH_HASHFUNC
+#define NDO_DFLT_BRIDGE_GETLINK_HAS_BRFLAGS
 #endif /* 3.19.0 */
 
 #if ( LINUX_VERSION_CODE < KERNEL_VERSION(3,20,0) )
@@ -4615,6 +4623,7 @@ static inline void __kc_timecounter_adjtime(struct timecounter *tc, s64 delta)
 #else
 #define HAVE_PTP_CLOCK_INFO_GETTIME64
 #define HAVE_NDO_BRIDGE_GETLINK_NLFLAGS
+#define HAVE_PASSTHRU_FEATURES_CHECK
 #endif /* 4,1,0 */
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4,1,9))
