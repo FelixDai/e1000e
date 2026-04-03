@@ -3231,22 +3231,31 @@ ssize_t _kc_simple_write_to_buffer(void *to, size_t available, loff_t * ppos,
 #ifndef numa_mem_id
 #define numa_mem_id numa_node_id
 #endif
+#if (!(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(6,0)))
 #ifdef HAVE_TX_MQ
 #include <net/sch_generic.h>
 #ifndef CONFIG_NETDEVICES_MULTIQUEUE
-#if (!(RHEL_RELEASE_CODE && RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(6,0)))
-void _kc_netif_set_real_num_tx_queues(struct net_device *, unsigned int);
-#define netif_set_real_num_tx_queues  _kc_netif_set_real_num_tx_queues
-#endif /* !(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(6,0)) */
+int _kc_netif_set_real_num_tx_queues(struct net_device *, unsigned int);
 #else /* CONFIG_NETDEVICES_MULTI_QUEUE */
-#define netif_set_real_num_tx_queues(_netdev, _count) \
-	do { \
-		(_netdev)->egress_subqueue_count = _count; \
-	} while (0)
+static inline int _kc_netif_set_real_num_tx_queues(struct net_device *dev,
+						   unsigned int txq)
+{
+	dev->egress_subqueue_count = txq;
+	return 0;
+}
 #endif /* CONFIG_NETDEVICES_MULTI_QUEUE */
 #else /* HAVE_TX_MQ */
-#define netif_set_real_num_tx_queues(_netdev, _count) do {} while(0)
+static inline int _kc_netif_set_real_num_tx_queues(struct net_device
+						   __always_unused *dev,
+						   unsigned int __always_unused
+						   txq)
+{
+	return 0;
+}
 #endif /* HAVE_TX_MQ */
+#define netif_set_real_num_tx_queues(dev, txq) \
+	_kc_netif_set_real_num_tx_queues(dev, txq)
+#endif /* !(RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(6,0)) */
 #ifndef ETH_FLAG_RXHASH
 #define ETH_FLAG_RXHASH (1<<28)
 #endif /* ETH_FLAG_RXHASH */
@@ -3341,6 +3350,17 @@ static inline void skb_tx_timestamp(struct sk_buff __always_unused *skb)
 
 /*****************************************************************************/
 #if ( LINUX_VERSION_CODE < KERNEL_VERSION(2,6,37) )
+#ifndef netif_set_real_num_tx_queues
+static inline int _kc_netif_set_real_num_tx_queues(struct net_device *dev,
+						   unsigned int txq)
+{
+	netif_set_real_num_tx_queues(dev, txq);
+	return 0;
+}
+
+#define netif_set_real_num_tx_queues(dev, txq) \
+	_kc_netif_set_real_num_tx_queues(dev, txq)
+#endif
 #ifndef netif_set_real_num_rx_queues
 static inline int __kc_netif_set_real_num_rx_queues(struct net_device
 						    __always_unused *dev,
@@ -4178,6 +4198,10 @@ extern int __kc_ndo_dflt_fdb_del(struct ndmsg *ndm, struct net_device *dev,
 
 /*****************************************************************************/
 #if ( LINUX_VERSION_CODE < KERNEL_VERSION(3,11,0) )
+#if ((RHEL_RELEASE_CODE && RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(6,6)) ||\
+     (SLE_VERSION_CODE && SLE_VERSION_CODE >= SLE_VERSION(11,4,0)))
+#define HAVE_NDO_SET_VF_LINK_STATE
+#endif
 #else /* >= 3.11.0 */
 #define HAVE_NDO_SET_VF_LINK_STATE
 #define HAVE_SKB_INNER_PROTOCOL

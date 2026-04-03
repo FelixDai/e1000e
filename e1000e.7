@@ -5,9 +5,10 @@
 .\" * Other names and brands may be claimed as the property of others.
 .\"
 .
-.TH e1000e 1 "February 06, 2015"
+.TH e1000e 1 "December 10, 2015"
 .SH NAME
-e1000e \-This file describes the Linux* Base Driver for the Gigabit Family of Adapters.
+e1000e \-This file describes the Linux* Base Driver
+for the Gigabit Family of Adapters.
 .SH SYNOPSIS
 .PD 0.4v
 modprobe e1000e [<option>=<VAL1>,<VAL2>,...]
@@ -48,7 +49,7 @@ increased CPU utilization, though it may help throughput in some circumstances.
   suitable for bulk throughput traffic due to the increased CPU utilization
   of the higher interrupt rate.
   NOTES:
-  - On 82599, X540, and X550-based adapters, disabling InterruptThrottleRate
+  - On 82599, and X540, and X550-based adapters, disabling InterruptThrottleRate
     will also result in the driver disabling HW RSC.
   - On 82598-based adapters, disabling InterruptThrottleRate will also
     result in disabling LRO (Large Receive Offloads).
@@ -168,6 +169,10 @@ loading or enabling the driver, try disabling this feature.
 .IP
 .B Valid Range: 0-1
 .IP
+0 = Disables EEE
+.IP
+1 = Enables EEE
+.IP
 A link between two EEE-compliant devices will result in periodic bursts of
 data followed by periods where the link is in an idle state. This Low Power
 Idle (LPI) state is supported in both 1 Gbps and 100 Mbps link speeds.
@@ -202,8 +207,8 @@ following where <x> is the interface number:
 
 .LP
 NOTES:
-- The maximum MTU setting for Jumbo Frames is 9216. This value coincides
-  with the maximum Jumbo Frames size of 9234 bytes.
+- The maximum MTU setting for Jumbo Frames is 8996. This value coincides
+  with the maximum Jumbo Frames size of 9018 bytes.
 - Using Jumbo frames at 10 or 100 Mbps is not supported and may result in
   poor performance or loss of link.
 See the section "Jumbo Frames" in the Readme.
@@ -255,7 +260,7 @@ To disable NAPI, compile the driver module, passing in a configuration option:
 # make CFLAGS_EXTRA=-DE1000E_NO_NAPI install
 .LP
 For more information on NAPI, see
-www.cyberus.ca/~hadi/usenix-paper.tgz
+https://www.linuxfoundation.org/collaborate/workgroups/networking/napi
 .SH SUPPORT
 .LP
 For additional information regarding building and installation,
@@ -267,5 +272,5 @@ For general information, go to the Intel support website at:
 .LP
 If an issue is identified with the released source code on a supported
 kernel with a supported adapter, email the specific information related to the
-issue to e1000e-devel@lists.sf.net.
+issue to e1000-devel@lists.sf.net.
 .LP

@@ -23,7 +23,7 @@ January 13, 2014
 Overview
 --------
 
-This document describes the e1000e Linux base driver.
+This document describes the e1000e Linux* Base Driver.
 
 The Linux* base driver supports the following kernel versions:
  2.4.x, 2.6.x and later. 
@@ -103,7 +103,7 @@ NOTES:
 4. Compile the driver module:
    # make install
    The binary will be installed as:
-   /lib/modules/<KERNEL VERSION>/kernel/drivers/net/e1000e/e1000e.[k]o
+   /lib/modules/<KERNEL VERSION>/updates/drivers/net/ethernet/intel/e1000e/e1000e.ko
 
    The install location listed above is the default location. This may differ
    for various Linux distributions.
@@ -177,7 +177,7 @@ increased CPU utilization, though it may help throughput in some circumstances.
   suitable for bulk throughput traffic due to the increased CPU utilization
   of the higher interrupt rate.
   NOTES:
-  - On 82599, X540, and X550-based adapters, disabling InterruptThrottleRate
+  - On 82599, and X540, and X550-based adapters, disabling InterruptThrottleRate
     will also result in the driver disabling HW RSC.
   - On 82598-based adapters, disabling InterruptThrottleRate will also
     result in disabling LRO (Large Receive Offloads).
@@ -294,6 +294,8 @@ loading or enabling the driver, try disabling this feature.
 EEE
 ---
 Valid Range: 0-1
+0 = Disables EEE
+1 = Enables EEE
 A link between two EEE-compliant devices will result in periodic bursts of
 data followed by periods where the link is in an idle state. This Low Power
 Idle (LPI) state is supported in both 1 Gbps and 100 Mbps link speeds.
@@ -383,8 +385,8 @@ permanent by adding 'MTU=9000' to the file:
 /etc/sysconfig/network/<config_file> for SLES.
 
 NOTES:
-- The maximum MTU setting for Jumbo Frames is 9216. This value coincides
-  with the maximum Jumbo Frames size of 9234 bytes.
+- The maximum MTU setting for Jumbo Frames is 8996. This value coincides
+  with the maximum Jumbo Frames size of 9018 bytes.
 - Using Jumbo frames at 10 or 100 Mbps is not supported and may result in
   poor performance or loss of link.
 - The following adapters limit Jumbo Frames sized packets to a maximum of
@@ -487,7 +489,7 @@ NAPI (Rx polling mode) is supported in the e1000e driver.
 To disable NAPI, compile the driver module, passing in a configuration option:
 # make CFLAGS_EXTRA=-DE1000E_NO_NAPI install
 For more information on NAPI, see
-ftp://robur.slu.se/pub/Linux/net-development/NAPI/usenix-paper.tgz.
+https://www.linuxfoundation.org/collaborate/workgroups/networking/napi
 
 
 ================================================================================

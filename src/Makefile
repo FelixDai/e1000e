@@ -195,9 +195,9 @@ endif # NO_PTP_SUPPORT
 
 # set the install path
 ifeq (1,$(shell [ $(KVER_CODE) -lt 197120 ] && echo 1 || echo 0))
-INSTDIR := /lib/modules/$(KVER)/kernel/drivers/net/$(DRIVER_NAME)
+INSTDIR := /lib/modules/$(KVER)/updates/drivers/net/$(DRIVER_NAME)
 else
-INSTDIR := /lib/modules/$(KVER)/kernel/drivers/net/ethernet/intel/$(DRIVER_NAME)
+INSTDIR := /lib/modules/$(KVER)/updates/drivers/net/ethernet/intel/$(DRIVER_NAME)
 endif
 
 # look for SMP in config.h
