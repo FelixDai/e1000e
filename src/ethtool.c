@@ -150,6 +150,7 @@ static const struct e1000_stats e1000_gstrings_stats[] = {
 	E1000_STAT("corr_ecc_errors", corr_errors),
 #ifdef HAVE_HW_TIME_STAMP
 	E1000_STAT("tx_hwtstamp_timeouts", tx_hwtstamp_timeouts),
+	E1000_STAT("tx_hwtstamp_skipped", tx_hwtstamp_skipped),
 #endif
 };
 
@@ -2313,7 +2314,7 @@ static void e1000_get_ethtool_stats(struct net_device *netdev,
 	pm_runtime_get_sync((netdev_to_dev(netdev))->parent);
 
 #ifdef HAVE_NDO_GET_STATS64
-	e1000e_get_stats64(netdev, &net_stats);
+	dev_get_stats(netdev, &net_stats);
 #else
 	e1000e_update_stats(adapter);
 #endif

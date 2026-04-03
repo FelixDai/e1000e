@@ -937,6 +937,19 @@ static inline int _kc_test_and_set_bit(int nr, volatile unsigned long *addr)
 #define dev_dbg(dev, format, arg...) dev_printk(KERN_DEBUG, dev, format, ##arg)
 #endif /* CONFIG_DYNAMIC_DEBUG */
 
+#undef list_for_each_entry_safe
+#define list_for_each_entry_safe(pos, n, head, member)			   \
+	for (n = NULL, pos = list_first_entry(head, typeof(*pos), member); \
+	     &pos->member != (head);					   \
+	     pos = list_next_entry(pos, member))
+
+#undef hlist_for_each_entry_safe
+#define hlist_for_each_entry_safe(pos, n, head, member)			     \
+	for (n = NULL, pos = hlist_entry_safe((head)->first, typeof(*(pos)), \
+					      member);			     \
+	     pos;							     \
+	     pos = hlist_entry_safe((pos)->member.next, typeof(*(pos)), member))
+
 #endif /* __KLOCWORK__ */
 
 /*****************************************************************************/
@@ -5034,7 +5047,9 @@ extern void *__kc_devm_kmemdup(struct device *dev, const void *src, size_t len,
 #define devm_kmemdup __kc_devm_kmemdup
 
 #else
+#if ( LINUX_VERSION_CODE < KERNEL_VERSION(4,13,0) )
 #define HAVE_PCI_ERROR_HANDLER_RESET_NOTIFY
+#endif /* >= 3.16.0 && < 4.13.0 */
 #define HAVE_NDO_SET_VF_MIN_MAX_TX_RATE
 #endif /* 3.16.0 */
 
@@ -5532,11 +5547,16 @@ static inline void pci_release_mem_regions(struct pci_dev *pdev)
 #endif /* !SLE_VERSION(12,3,0) */
 #else
 #define HAVE_UDP_ENC_RX_OFFLOAD
+#define HAVE_XPS_QOS_SUPPORT
 #endif /* 4.8.0 */
 
 /*****************************************************************************/
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4,9,0))
+#if (RHEL_RELEASE_CODE && (RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(7,4)))
+#define HAVE_ETHTOOL_NEW_10G_BITS
+#endif /* RHEL */
 #else
+#define HAVE_ETHTOOL_NEW_10G_BITS
 #endif /* 4.9.0 */
 
 /*****************************************************************************/
@@ -5613,6 +5633,7 @@ static inline void __page_frag_cache_drain(struct page *page,
 #else /* > 4.13 */
 #define HAVE_HWTSTAMP_FILTER_NTP_ALL
 #define HAVE_NDO_SETUP_TC_CHAIN_INDEX
+#define HAVE_PCI_ERROR_HANDLER_RESET_PREPARE
 #endif /* 4.13.0 */
 
 #endif /* _KCOMPAT_H_ */

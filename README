@@ -19,7 +19,6 @@ November 11, 2016
 ================================================================================
 
 
-
 Overview
 --------
 
@@ -52,7 +51,6 @@ Channel Bonding documentation can be found in the Linux kernel source:
 
 The driver information previously displayed in the /proc file system is not
 supported in this release.
-
 
 NOTE: The Intel(R) 82562v 10/100 Network Connection only provides 10/100 support.
 
@@ -797,11 +795,10 @@ The full GNU General Public License is included in this distribution in the
 file called "COPYING".
 
 Copyright(c) 1999 - 2016 Intel Corporation.
-
 Trademarks
 ----------
 
-Intel, Itanium, and Pentium are trademarks or registered trademarks of Intel
+Intel and Itanium are trademarks or registered trademarks of Intel
 Corporation or its subsidiaries in the United States and/or other countries.
 
 * Other names and brands may be claimed as the property of others.
