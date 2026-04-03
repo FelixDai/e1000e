@@ -145,6 +145,7 @@ enum e1000_boards {
 	board_pch2lan,
 	board_pch_lpt,
 	board_pch_spt,
+	board_pch_cnp
 };
 
 struct e1000_ps_page {
@@ -452,6 +453,9 @@ s32 e1000e_get_base_timinca(struct e1000_adapter *adapter, u32 *timinca);
 #define INCVALUE_SHIFT_24MHZ	14
 #define INCPERIOD_24MHZ		3
 
+#define INCVALUE_38400KHZ	26
+#define INCVALUE_SHIFT_38400KHZ	19
+#define INCPERIOD_38400KHZ	1
 
 /* Another drawback of scaling the incvalue by a large factor is the
  * 64-bit SYSTIM register overflows more quickly.  This is dealt with
@@ -598,6 +602,7 @@ extern const struct e1000_info e1000_pch_info;
 extern const struct e1000_info e1000_pch2_info;
 extern const struct e1000_info e1000_pch_lpt_info;
 extern const struct e1000_info e1000_pch_spt_info;
+extern const struct e1000_info e1000_pch_cnp_info;
 extern const struct e1000_info e1000_es2_info;
 
 #ifdef HAVE_PTP_1588_CLOCK

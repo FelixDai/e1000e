@@ -318,6 +318,7 @@ static s32 e1000_init_phy_workarounds_pchlan(struct e1000_hw *hw)
 	switch (hw->mac.type) {
 	case e1000_pch_lpt:
 	case e1000_pch_spt:
+	case e1000_pch_cnp:
 		if (e1000_phy_is_accessible_pchlan(hw))
 			break;
 
@@ -459,6 +460,7 @@ static s32 e1000_init_phy_params_pchlan(struct e1000_hw *hw)
 		case e1000_pch2lan:
 		case e1000_pch_lpt:
 		case e1000_pch_spt:
+		case e1000_pch_cnp:
 			/* In case the PHY needs to be in mdio slow mode,
 			 * set slow mode and try to get the PHY id again.
 			 */
@@ -701,6 +703,7 @@ static s32 e1000_init_mac_params_ich8lan(struct e1000_hw *hw)
 		/* fall-through */
 	case e1000_pch_lpt:
 	case e1000_pch_spt:
+	case e1000_pch_cnp:
 	case e1000_pchlan:
 		/* save PCH revision_id */
 		pci_read_config_word(hw->adapter->pdev,
@@ -1471,8 +1474,6 @@ static s32 e1000_check_for_copper_link_ich8lan(struct e1000_hw *hw)
 		ret_val = e1000_write_emi_reg_locked(hw, emi_addr, emi_val);
 
 		if (hw->mac.type >= e1000_pch_lpt) {
-			u16 phy_reg;
-
 			e1e_rphy_locked(hw, I217_PLL_CLOCK_GATE_REG, &phy_reg);
 			phy_reg &= ~I217_PLL_CLOCK_GATE_MASK;
 			if (speed == SPEED_100 || speed == SPEED_10)
@@ -1687,6 +1688,7 @@ static s32 e1000_get_variants_ich8lan(struct e1000_adapter *adapter)
 	case e1000_pch2lan:
 	case e1000_pch_lpt:
 	case e1000_pch_spt:
+	case e1000_pch_cnp:
 		rc = e1000_init_phy_params_pchlan(hw);
 		break;
 	default:
@@ -2140,6 +2142,7 @@ static s32 e1000_sw_lcd_config_ich8lan(struct e1000_hw *hw)
 	case e1000_pch2lan:
 	case e1000_pch_lpt:
 	case e1000_pch_spt:
+	case e1000_pch_cnp:
 		sw_cfg_mask = E1000_FEXTNVM_SW_CONFIG_ICH8M;
 		break;
 	default:
@@ -3173,6 +3176,7 @@ static s32 e1000_valid_nvm_bank_detect_ich8lan(struct e1000_hw *hw, u32 *bank)
 
 	switch (hw->mac.type) {
 	case e1000_pch_spt:
+	case e1000_pch_cnp:
 		bank1_offset = nvm->flash_bank_size;
 		act_offset = E1000_ICH_NVM_SIG_WORD;
 
@@ -4111,6 +4115,7 @@ static s32 e1000_validate_nvm_checksum_ich8lan(struct e1000_hw *hw)
 	switch (hw->mac.type) {
 	case e1000_pch_lpt:
 	case e1000_pch_spt:
+	case e1000_pch_cnp:
 		word = NVM_COMPAT;
 		valid_csum_mask = NVM_COMPAT_VALID_CSUM;
 		break;
@@ -5942,3 +5947,25 @@ const struct e1000_info e1000_pch_spt_info = {
 	.nvm_ops		= &spt_nvm_ops,
 };
 
+const struct e1000_info e1000_pch_cnp_info = {
+	.mac			= e1000_pch_cnp,
+	.flags			= FLAG_IS_ICH
+				  | FLAG_HAS_WOL
+				  | FLAG_HAS_HW_TIMESTAMP
+#ifndef HAVE_NDO_SET_FEATURES
+				  | FLAG_RX_CSUM_ENABLED
+#endif
+				  | FLAG_HAS_CTRLEXT_ON_LOAD
+				  | FLAG_HAS_AMT
+				  | FLAG_HAS_FLASH
+				  | FLAG_HAS_JUMBO_FRAMES
+				  | FLAG_APME_IN_WUC,
+	.flags2			= FLAG2_HAS_PHY_STATS
+				  | FLAG2_HAS_EEE,
+	.pba			= 26,
+	.max_hw_frame_size	= 9022,
+	.get_variants		= e1000_get_variants_ich8lan,
+	.mac_ops		= &ich8_mac_ops,
+	.phy_ops		= &ich8_phy_ops,
+	.nvm_ops		= &spt_nvm_ops,
+};

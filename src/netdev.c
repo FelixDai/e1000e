@@ -53,7 +53,7 @@
 #define DRV_EXTRAVERSION ""
 #endif
 
-#define DRV_VERSION "3.3.6" DRV_EXTRAVERSION
+#define DRV_VERSION "3.4.0.2" DRV_EXTRAVERSION
 char e1000e_driver_name[] = "e1000e";
 const char e1000e_driver_version[] = DRV_VERSION;
 
@@ -76,6 +76,7 @@ static const struct e1000_info *e1000_info_tbl[] = {
 	[board_pch2lan]		= &e1000_pch2_info,
 	[board_pch_lpt]		= &e1000_pch_lpt_info,
 	[board_pch_spt]		= &e1000_pch_spt_info,
+	[board_pch_cnp]		= &e1000_pch_cnp_info,
 };
 
 struct e1000_reg_info {
@@ -3418,8 +3419,8 @@ static void e1000_configure_tx(struct e1000_adapter *adapter)
 
 		reg_val = er32(TARC(0));
 		/* SPT and KBL Si errata workaround to avoid Tx hang */
-		reg_val &= ~BIT(28);
-		reg_val |= BIT(29);
+		reg_val &= ~E1000_TARC0_CB_MULTIQ_3_REQ;
+		reg_val |= E1000_TARC0_CB_MULTIQ_2_REQ;
 		ew32(TARC(0), reg_val);
 	}
 }
@@ -4016,6 +4017,21 @@ s32 e1000e_get_base_timinca(struct e1000_adapter *adapter, u32 *timinca)
 			break;
 		}
 		return -EINVAL;
+	case e1000_pch_cnp:
+		if (er32(TSYNCRXCTL) & E1000_TSYNCRXCTL_SYSCFI) {
+			/* Stable 24MHz frequency */
+			incperiod = INCPERIOD_24MHZ;
+			incvalue = INCVALUE_24MHZ;
+			shift = INCVALUE_SHIFT_24MHZ;
+			adapter->cc.shift = shift;
+		} else {
+			/* Stable 38400KHz frequency */
+			incperiod = INCPERIOD_38400KHZ;
+			incvalue = INCVALUE_38400KHZ;
+			shift = INCVALUE_SHIFT_38400KHZ;
+			adapter->cc.shift = shift;
+		}
+		break;
 	case e1000_82574:
 	case e1000_82583:
 		/* Stable 25MHz frequency */
@@ -4533,6 +4549,7 @@ void e1000e_reset(struct e1000_adapter *adapter)
 	case e1000_pch2lan:
 	case e1000_pch_lpt:
 	case e1000_pch_spt:
+	case e1000_pch_cnp:
 		fc->refresh_time = 0x0400;
 
 		if (adapter->netdev->mtu <= ETH_DATA_LEN) {
@@ -8104,7 +8121,6 @@ static int e1000_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	 * not work.
 	 */
 	if (hw->mac.type == e1000_pch2lan) {
-		struct pci_dev *pdev = adapter->pdev;
 		int pos = pci_find_capability(pdev, PCI_CAP_ID_AF);
 
 		if (pos) {
@@ -8648,6 +8664,10 @@ static const struct pci_device_id e1000_pci_tbl[] = {
 	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_PCH_SPT_I219_V4), board_pch_spt },
 	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_PCH_SPT_I219_LM5), board_pch_spt },
 	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_PCH_SPT_I219_V5), board_pch_spt },
+	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_PCH_CNP_I219_LM6), board_pch_cnp },
+	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_PCH_CNP_I219_V6), board_pch_cnp },
+	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_PCH_CNP_I219_LM7), board_pch_cnp },
+	{ PCI_VDEVICE(INTEL, E1000_DEV_ID_PCH_CNP_I219_V7), board_pch_cnp },
 
 	{ 0, 0, 0, 0, 0, 0, 0 }	/* terminate list */
 };

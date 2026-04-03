@@ -67,16 +67,11 @@ increased CPU utilization, though it may help throughput in some circumstances.
   increase latency as packets are not processed as quickly.
 
  .IP
-
 NOTE:
 - InterruptThrottleRate takes precedence over the TxAbsIntDelay and
   RxAbsIntDelay parameters. In other words, minimizing the receive and/or
   transmit absolute delays does not force the controller to generate more
   interrupts than what the Interrupt Throttle Rate allows.
-
-
-
-
 .LP
 .B RxIntDelay
 .IP
@@ -201,11 +196,9 @@ interrupt time could run on a different core than where the memory is
 allocated causing slower memory access and impacting throughput, CPU, or both.
 .SH Jumbo Frames
 .LP
-Jumbo Frames support is enabled by changing the Maximum Transmission Unit
-(MTU) to a value larger than the default value of 1500.
+Jumbo Frames support is enabled by changing the Maximum Transmission Unit (MTU) to a value larger than the default value of 1500.
 
-Use the ifconfig command to increase the MTU size. For example, enter the
-following where <x> is the interface number:
+Use the ifconfig command to increase the MTU size. For example, enter the following where <x> is the interface number:
 
    ifconfig eth<x> mtu 9000 up
 Alternatively, you can use the ip command as follows:
@@ -213,55 +206,28 @@ Alternatively, you can use the ip command as follows:
    ip link set up dev eth<x>
 
 .LP
-NOTES:
-- The maximum MTU setting for Jumbo Frames is 8996. This value coincides
-  with the maximum Jumbo Frames size of 9018 bytes.
-- Using Jumbo frames at 10 or 100 Mbps is not supported and may result in
-  poor performance or loss of link.
+NOTE: The maximum MTU setting for Jumbo Frames is 8996. This value coincides with the maximum Jumbo Frames size of 9018 bytes.
 
+NOTE: Using Jumbo frames at 10 or 100 Mbps is not supported and may result in poor performance or loss of link.
 See the section "Jumbo Frames" in the Readme.
 .SH ethtool
 .LP
-The driver utilizes the ethtool interface for driver configuration and
-diagnostics, as well as displaying statistical information. The latest
-ethtool version is required for this functionality. Download it at
+The driver utilizes the ethtool interface for driver configuration and diagnostics, as well as displaying statistical information. The latest ethtool version is required for this functionality. Download it at:
 http://ftp.kernel.org/pub/software/network/ethtool/
 
 
 .SH SPEED AND DUPLEX SETTINGS
+In addressing speed and duplex configuration issues, you need to distinguish between copper-based adapters and fiber-based adapters.
 
-In addressing speed and duplex configuration issues, you need to
-distinguish between copper-based adapters and fiber-based adapters.
+In the default mode, an Intel(R) Ethernet Network Adapter using copper connections will attempt to auto-negotiate with its link partner to determine the best setting. If the adapter cannot establish link with the link partner using auto-negotiation, you may need to manually configure the adapter and link partner to identical settings to establish link and pass packets. This should only be needed when attempting to link with an older switch that does not support auto-negotiation or one that has been forced to a specific speed or duplex mode. Your link partner must match the setting you choose. 1 Gbps speeds and higher cannot be forced. Use the autonegotiation advertising setting to manually set devices for 1 Gbps and higher.
 
-In the default mode, an Intel(R) Network Adapter using copper connections
-will attempt to auto-negotiate with its link partner to determine the best
-setting. If the adapter cannot establish link with the link partner using
-auto-negotiation, you may need to manually configure the adapter and link
-partner to identical settings to establish link and pass packets. This
-should only be needed when attempting to link with an older switch that
-does not support auto-negotiation or one that has been forced to a specific
-speed or duplex mode. Your link partner must match the setting you choose.
-1 Gbps speeds and higher cannot be forced. Use the autonegotiation
-advertising setting to manually set devices for 1 Gbps and higher.
-
-
-Speed, duplex, and autonegotiation advertising are configured through
-the ethtool* utility. ethtool is included with all versions of Red Hat
-after Red Hat 7.2. For the latest version, download and install
-ethtool from the following website:
+Speed, duplex, and autonegotiation advertising are configured through the ethtool* utility. ethtool is included with all versions of Red Hat after Red Hat 7.2. For the latest version, download and install ethtool from the following website:
 
    http://ftp.kernel.org/pub/software/network/ethtool/
 
+Caution: Only experienced network administrators should force speed and duplex or change autonegotiation advertising manually. The settings at the switch must always match the adapter settings. Adapter performance may suffer or your adapter may not operate if you configure the adapter differently from your switch.
 
-Caution: Only experienced network administrators should force speed and
-duplex or change autonegotiation advertising manually. The settings at
-the switch must always match the adapter settings. Adapter performance
-may suffer or your adapter may not operate if you configure the adapter
-differently from your switch.
-
-An Intel(R) Network Adapter using fiber-based connections, however, will not
-attempt to auto-negotiate with its link partner since those adapters operate
-only in full duplex and only at their native speed.
+An Intel(R) Ethernet Network Adapter using fiber-based connections, however, will not attempt to auto-negotiate with its link partner since those adapters operate only in full duplex and only at their native speed.
 
 .SH NAPI
 .LP
@@ -274,15 +240,11 @@ For more information on NAPI, see
 https://www.linuxfoundation.org/collaborate/workgroups/networking/napi
 .SH SUPPORT
 .LP
-For additional information regarding building and installation,
-see the
+For additional information regarding building and installation, see the
 README
 included with the driver.
 For general information, go to the Intel support website at:
 .B www.intel.com/support/
 .LP
-If an issue is identified with the released source code on a supported
-kernel with a supported adapter, email the specific information related to the
-issue to e1000-devel@lists.sf.net.
-
+If an issue is identified with the released source code on a supported kernel with a supported adapter, email the specific information related to the issue to e1000-devel@lists.sf.net.
 .LP
