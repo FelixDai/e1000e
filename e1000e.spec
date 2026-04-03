@@ -1,6 +1,6 @@
 Name: e1000e
 Summary: Intel(R) Gigabit Ethernet Connection
-Version: 3.3.3
+Version: 3.3.4
 Release: 1
 Source: %{name}-%{version}.tar.gz
 Vendor: Intel Corporation

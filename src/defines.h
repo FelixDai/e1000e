@@ -1,5 +1,5 @@
 /* Intel PRO/1000 Linux driver
- * Copyright(c) 1999 - 2015 Intel Corporation.
+ * Copyright(c) 1999 - 2016 Intel Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -240,7 +240,10 @@
 #define E1000_STATUS_LAN_INIT_DONE	0x00000200	/* Lan Init Compltn by NVM */
 #define E1000_STATUS_PHYRA		0x00000400	/* PHY Reset Asserted */
 #define E1000_STATUS_GIO_MASTER_ENABLE	0x00080000	/* Master request status */
+#define E1000_STATUS_2P5_SKU		0x00001000	/* Val of 2.5GBE SKU strap */
+#define E1000_STATUS_2P5_SKU_OVER	0x00002000	/* Val of 2.5GBE SKU Over */
 
+#define SPEED_2500	2500
 #define HALF_DUPLEX	1
 #define FULL_DUPLEX	2
 
@@ -344,6 +347,8 @@
 #define E1000_TIPG_IPGR2_SHIFT		20
 
 #define MAX_JUMBO_FRAME_SIZE		0x3F00
+/* The datasheet maximum supported RX size is 9.5KB (9728 bytes) */
+#define MAX_RX_JUMBO_FRAME_SIZE		0x2600
 #define E1000_TX_PTR_GAP		0x1F
 
 /* Extended Configuration Control and Size */

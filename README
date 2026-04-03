@@ -4,7 +4,7 @@ e1000e Linux* Base Driver for Intel(R) Network Connection
 
 ================================================================================
 
-January 13, 2014
+May 2, 2016
 
 ================================================================================
 
@@ -23,11 +23,13 @@ January 13, 2014
 Overview
 --------
 
-This document describes the e1000e Linux* Base Driver.
+This driver supports kernel versions 2.4.x, 2.6.x and later.
 
-The Linux* base driver supports the following kernel versions:
- 2.4.x, 2.6.x and later. 
+It supports Core ix systems with embedded LAN controller.
 
+Driver information can be obtained using ethtool, lspci, and ifconfig.
+Instructions on updating ethtool can be found in the section Additional
+Configurations later in this document.
 
 This driver is only supported as a loadable module at this time. Intel is
 not supplying patches against the kernel source to allow for static linking of
@@ -44,15 +46,12 @@ The following features are now available in supported kernels:
 
 Adapter teaming is implemented using the native Linux Channel bonding
 module. This is included in supported Linux kernels.
+
 Channel Bonding documentation can be found in the Linux kernel source:
 /documentation/networking/bonding.txt
 
 The driver information previously displayed in the /proc file system is not
 supported in this release.
-
-Driver information can be obtained using ethtool, lspci, and ifconfig.
-Instructions on updating ethtool can be found in the section Additional 
-Configurations later in this document.
 
 NOTE: The Intel(R) 82562v 10/100 Network Connection only provides 10/100 support.
 
@@ -528,10 +527,9 @@ In some cases ports 3 and 4 don't pass traffic and report 'Detected Tx Unit
 Hang' followed by 'NETDEV WATCHDOG: ethX: transmit timed out' errors. Ports 1
 and 2 do not show any errors and will pass traffic.
 
-This issue may be resolved by updating to the latest kernel and BIOS. The user
-is encouraged to run an OS that fully supports MSI interrupts. You can check
-your system BIOS by downloading the Linux Firmware Developer Kit at
-http://www.linuxfirmwarekit.org/.
+This issue may be resolved by updating to the latest kernel and BIOS. You should
+use an OS that fully supports Message Signaled Interrupts (MSI) and make sure
+that MSI is enabled in your system's BIOS.
 
 
 Adapters with 4 ports Behind a PCIe bridge
@@ -773,8 +771,7 @@ St - Fifth Floor, Boston, MA 02110-1301 USA.
 The full GNU General Public License is included in this distribution in the
 file called "COPYING".
 
-Intel(R) Gigabit Ethernet driver
-Copyright(c) 1999 - 2015 Intel Corporation.
+Copyright(c) 1999 - 2016 Intel Corporation.
 
 Trademarks
 ----------
