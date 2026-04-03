@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-/* Copyright(c) 1999 - 2018 Intel Corporation. */
+/* Copyright(c) 1999 - 2019 Intel Corporation. */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
@@ -35,7 +35,7 @@
 #define DRV_EXTRAVERSION ""
 #endif
 
-#define DRV_VERSION "3.4.2.1" DRV_EXTRAVERSION
+#define DRV_VERSION "3.4.2.3" DRV_EXTRAVERSION
 char e1000e_driver_name[] = "e1000e";
 const char e1000e_driver_version[] = DRV_VERSION;
 
@@ -473,6 +473,7 @@ rx_ring_summary:
 
 /**
  * e1000_desc_unused - calculate if we have unused descriptors
+ * @ring: structure containing ring specific data
  **/
 static int e1000_desc_unused(struct e1000_ring *ring)
 {
@@ -551,9 +552,10 @@ static void e1000e_rx_hwtstamp(struct e1000_adapter *adapter, u32 status,
 /**
  * e1000_receive_skb - helper function to handle Rx indications
  * @adapter: board private structure
+ * @netdev: network interface device starcture
+ * @skb: pointer to sk_buff to be indicated to stack
  * @staterr: descriptor extended error and status field as written by hardware
  * @vlan: descriptor vlan field as written by hardware (no le/be conversion)
- * @skb: pointer to sk_buff to be indicated to stack
  **/
 static void e1000_receive_skb(struct e1000_adapter *adapter,
 			      struct net_device *netdev, struct sk_buff *skb,
@@ -614,8 +616,7 @@ static void e1000_receive_skb(struct e1000_adapter *adapter,
  * e1000_rx_checksum - Receive Checksum Offload
  * @adapter: board private structure
  * @status_err: receive descriptor status and error fields
- * @csum: receive descriptor csum field
- * @sk_buff: socket buffer with received data
+ * @skb: socket buffer with received data
  **/
 static void e1000_rx_checksum(struct e1000_adapter *adapter, u32 status_err,
 			      struct sk_buff *skb)
@@ -690,6 +691,8 @@ static void e1000e_update_tdt_wa(struct e1000_ring *tx_ring, unsigned int i)
 /**
  * e1000_alloc_rx_buffers - Replace used receive buffers
  * @rx_ring: Rx descriptor ring
+ * @cleaned_count: number of buffers to allocate this pass
+ * @gfp: gfp mask to allocate skb
  **/
 static void e1000_alloc_rx_buffers(struct e1000_ring *rx_ring,
 				   int cleaned_count, gfp_t __maybe_unused gfp)
@@ -781,6 +784,8 @@ static void e1000e_check_ltr_demote(struct e1000_adapter *adapter,
 /**
  * e1000_alloc_rx_buffers_ps - Replace used receive buffers; packet split
  * @rx_ring: Rx descriptor ring
+ * @cleaned_count: number of buffers to allocate this pass
+ * @gfp: gfp mask to allocate ps pages
  **/
 static void e1000_alloc_rx_buffers_ps(struct e1000_ring *rx_ring,
 				      int cleaned_count,
@@ -887,6 +892,7 @@ no_buffers:
  * e1000_alloc_jumbo_rx_buffers - Replace used jumbo receive buffers
  * @rx_ring: Rx descriptor ring
  * @cleaned_count: number of buffers to allocate this pass
+ * @gfp: gfp mask to allocate skb
  **/
 
 static void e1000_alloc_jumbo_rx_buffers(struct e1000_ring *rx_ring,
@@ -982,6 +988,8 @@ static inline void e1000_rx_hash(struct net_device *netdev, __le32 rss,
 /**
  * e1000_clean_rx_irq - Send received data up the network stack
  * @rx_ring: Rx descriptor ring
+ * @work_done: amount of napi work completed this call
+ * @work_to_do: max amount of work allowed for this call to do
  *
  * the return value indicates whether actual cleaning was done, there
  * is no guarantee that everything was cleaned
@@ -1407,6 +1415,8 @@ static bool e1000_clean_tx_irq(struct e1000_ring *tx_ring)
 /**
  * e1000_clean_rx_irq_ps - Send received data up the network stack; packet split
  * @rx_ring: Rx descriptor ring
+ * @work_done: amount of napi work completed this call
+ * @work_to_do: max amount of work allowed for this call to do
  *
  * the return value indicates whether actual cleaning was done, there
  * is no guarantee that everything was cleaned
@@ -1622,6 +1632,9 @@ next_desc:
 #ifdef CONFIG_E1000E_NAPI
 /**
  * e1000_consume_page - helper function
+ * @bi: buffer to consume
+ * @skb: pointer to sk_buff to be indicated to stack
+ * @length: of the data DMAed in data buffer
  **/
 static void e1000_consume_page(struct e1000_buffer *bi, struct sk_buff *skb,
 			       u16 length)
@@ -1634,7 +1647,9 @@ static void e1000_consume_page(struct e1000_buffer *bi, struct sk_buff *skb,
 
 /**
  * e1000_clean_jumbo_rx_irq - Send received data up the network stack; legacy
- * @adapter: board private structure
+ * @rx_ring: Rx descriptor ring
+ * @work_done: amount of napi work completed this call
+ * @work_to_do: max amount of work allowed for this call to do
  *
  * the return value indicates whether actual cleaning was done, there
  * is no guarantee that everything was cleaned
@@ -1818,7 +1833,7 @@ next_desc:
 #endif /* CONFIG_E1000E_NAPI */
 /**
  * e1000_clean_rx_ring - Free Rx Buffers per Queue
- * @rx_ring: Rx descriptor ring
+ * @rx_ring: ring to clean
  **/
 static void e1000_clean_rx_ring(struct e1000_ring *rx_ring)
 {
@@ -2182,6 +2197,7 @@ out:
 
 /**
  * e1000_configure_msix - Configure MSI-X hardware
+ * @adapter: board private structure
  *
  * e1000_configure_msix sets up the hardware to properly
  * generate MSI-X interrupts.
@@ -2261,6 +2277,7 @@ void e1000e_reset_interrupt_capability(struct e1000_adapter *adapter)
 
 /**
  * e1000e_set_interrupt_capability - set MSI or MSI-X if supported
+ * @adapter: board private structure
  *
  * Attempt to configure interrupts using the best available
  * capabilities of the hardware and kernel.
@@ -2316,6 +2333,7 @@ void e1000e_set_interrupt_capability(struct e1000_adapter *adapter)
 
 /**
  * e1000_request_msix - Initialize MSI-X interrupts
+ * @adapter: board private structure
  *
  * e1000_request_msix allocates MSI-X vectors and requests interrupts from the
  * kernel.
@@ -2361,6 +2379,7 @@ static int e1000_request_msix(struct e1000_adapter *adapter)
 
 /**
  * e1000_request_irq - initialize interrupts
+ * @adapter: board private structure
  *
  * Attempts to configure interrupts using the best available
  * capabilities of the hardware and kernel.
@@ -2421,6 +2440,7 @@ static void e1000_free_irq(struct e1000_adapter *adapter)
 
 /**
  * e1000_irq_disable - Mask off interrupt generation on the NIC
+ * @adapter: board private structure
  **/
 static void e1000_irq_disable(struct e1000_adapter *adapter)
 {
@@ -2443,6 +2463,7 @@ static void e1000_irq_disable(struct e1000_adapter *adapter)
 
 /**
  * e1000_irq_enable - Enable default interrupt generation settings
+ * @adapter: board private structure
  **/
 static void e1000_irq_enable(struct e1000_adapter *adapter)
 {
@@ -2512,6 +2533,8 @@ void e1000e_release_hw_control(struct e1000_adapter *adapter)
 
 /**
  * e1000_alloc_ring_dma - allocate memory for a ring structure
+ * @adapter: board private structure
+ * @ring: structure containing ring specific data
  **/
 static int e1000_alloc_ring_dma(struct e1000_adapter *adapter,
 				struct e1000_ring *ring)
@@ -2704,7 +2727,6 @@ void e1000e_free_rx_resources(struct e1000_ring *rx_ring)
 
 /**
  * e1000_update_itr - update the dynamic ITR value based on statistics
- * @adapter: pointer to adapter
  * @itr_setting: current adapter->itr
  * @packets: the number of packets during this measurement interval
  * @bytes: the number of bytes during this measurement interval
@@ -2886,9 +2908,9 @@ err:
 /**
  * e1000e_poll - NAPI Rx polling callback
  * @napi: struct associated with this polling callback
- * @weight: number of packets driver is allowed to process this poll
+ * @budget: number of packets driver is allowed to process this poll
  **/
-static int e1000e_poll(struct napi_struct *napi, int weight)
+static int e1000e_poll(struct napi_struct *napi, int budget)
 {
 	struct e1000_adapter *adapter = container_of(napi, struct e1000_adapter,
 						     napi);
@@ -2902,10 +2924,10 @@ static int e1000e_poll(struct napi_struct *napi, int weight)
 	    (adapter->rx_ring->ims_val & adapter->tx_ring->ims_val))
 		tx_cleaned = e1000_clean_tx_irq(adapter->tx_ring);
 
-	adapter->clean_rx(adapter->rx_ring, &work_done, weight);
+	adapter->clean_rx(adapter->rx_ring, &work_done, budget);
 
-	if (!tx_cleaned)
-		work_done = weight;
+	if (!tx_cleaned || work_done == budget)
+		return budget;
 
 #ifndef HAVE_NETDEV_NAPI_LIST
 	/* if netdev is disabled we need to stop polling */
@@ -2913,11 +2935,12 @@ static int e1000e_poll(struct napi_struct *napi, int weight)
 		work_done = 0;
 
 #endif
-	/* If weight not fully consumed, exit the polling mode */
-	if (work_done < weight) {
+	/* Exit the polling mode, but don't re-enable interrupts if stack might
+	 * poll us due to busy-polling
+	 */
+	if (likely(napi_complete_done(napi, work_done))) {
 		if (adapter->itr_setting & 3)
 			e1000_set_itr(adapter);
-		napi_complete_done(napi, work_done);
 		if (!test_bit(__E1000_DOWN, &adapter->state)) {
 			if (adapter->msix_entries)
 				ew32(IMS, adapter->rx_ring->ims_val);
@@ -3410,12 +3433,12 @@ static void e1000_configure_tx(struct e1000_adapter *adapter)
 	}
 }
 
+#define PAGE_USE_COUNT(S) (((S) >> PAGE_SHIFT) + \
+			   (((S) & (PAGE_SIZE - 1)) ? 1 : 0))
 /**
  * e1000_setup_rctl - configure the receive control registers
  * @adapter: Board private structure
  **/
-#define PAGE_USE_COUNT(S) (((S) >> PAGE_SHIFT) + \
-			   (((S) & (PAGE_SIZE - 1)) ? 1 : 0))
 static void e1000_setup_rctl(struct e1000_adapter *adapter)
 {
 	struct e1000_hw *hw = &adapter->hw;
@@ -4039,6 +4062,7 @@ s32 e1000e_get_base_timinca(struct e1000_adapter *adapter, u32 *timinca)
 /**
  * e1000e_config_hwtstamp - configure the hwtstamp registers and enable/disable
  * @adapter: board private structure
+ * @config: struct that keeps hwtstamp configurations
  *
  * Outgoing time stamping can be enabled and disabled. Play nice and
  * disable it when requested, although it shouldn't cause any overhead
@@ -4259,6 +4283,7 @@ void e1000e_power_up_phy(struct e1000_adapter *adapter)
 
 /**
  * e1000_power_down_phy - Power down the PHY
+ * @adapter: board private structure
  *
  * Power down the PHY so no link is implied when interface is down.
  * The PHY cannot be powered down if management or WoL is active.
@@ -4271,6 +4296,7 @@ static void e1000_power_down_phy(struct e1000_adapter *adapter)
 
 /**
  * e1000_flush_tx_ring - remove all descriptors from the tx_ring
+ * @adapter: board private structure
  *
  * We want to clear all pending descriptors from the TX ring.
  * zeroing happens when the HW reads the regs. We  assign the ring itself as
@@ -4306,6 +4332,7 @@ static void e1000_flush_tx_ring(struct e1000_adapter *adapter)
 
 /**
  * e1000_flush_rx_ring - remove all descriptors from the rx_ring
+ * @adapter: board private structure
  *
  * Mark all descriptors in the RX ring as consumed and disable the rx ring
  */
@@ -4338,6 +4365,7 @@ static void e1000_flush_rx_ring(struct e1000_adapter *adapter)
 
 /**
  * e1000_flush_desc_rings - remove all descriptors from the descriptor rings
+ * @adapter: board private structure
  *
  * In i219, the descriptor rings must be emptied before resetting the HW
  * or before changing the device state to D3 during runtime (runtime PM).
@@ -4424,6 +4452,7 @@ static void e1000e_systim_reset(struct e1000_adapter *adapter)
 
 /**
  * e1000e_reset - bring the hardware into a known good state
+ * @adapter: board private structure
  *
  * This function boots the hardware and enables some settings that
  * require a configuration cycle of the hardware - those cannot be
@@ -5366,7 +5395,7 @@ static void e1000e_update_phy_task(struct work_struct *work)
 
 /**
  * e1000_update_phy_info - timre call-back to update PHY info
- * @data: pointer to adapter cast into an unsigned long
+ * @t: the struct of the function to call when phy_info_timer expires
  *
  * Need to wait a few seconds after link up to get diagnostic information from
  * the phy
@@ -5754,7 +5783,7 @@ static void e1000e_check_82574_phy_workaround(struct e1000_adapter *adapter)
 
 /**
  * e1000_watchdog - Timer Call-back
- * @data: pointer to adapter cast into an unsigned long
+ * @t: the struct of the function to call when watchdog_timer expires
  **/
 static void e1000_watchdog(struct timer_list *t)
 {
@@ -6873,7 +6902,7 @@ static int e1000_mii_ioctl(struct net_device *netdev, struct ifreq *ifr,
 /**
  * e1000e_hwtstamp_ioctl - control hardware time stamping
  * @netdev: network interface device structure
- * @ifreq: interface request
+ * @ifr: interface request
  *
  * Outgoing time stamping can be enabled and disabled. Play nice and
  * disable it when requested, although it shouldn't cause any overhead
@@ -8715,7 +8744,7 @@ static int __init e1000_init_module(void)
 {
 	pr_info("Intel(R) PRO/1000 Network Driver - %s\n",
 		e1000e_driver_version);
-	pr_info("Copyright(c) 1999 - 2018 Intel Corporation.\n");
+	pr_info("Copyright(c) 1999 - 2019 Intel Corporation.\n");
 
 #ifndef USE_REBOOT_NOTIFIER
 	return pci_register_driver(&e1000_driver);

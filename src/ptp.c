@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-/* Copyright(c) 1999 - 2018 Intel Corporation. */
+/* Copyright(c) 1999 - 2019 Intel Corporation. */
 
 /* PTP 1588 Hardware Clock (PHC)
  * Derived from PTP Hardware Clock driver for Intel 82576 and 82580 (igb)

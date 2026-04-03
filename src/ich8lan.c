@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-/* Copyright(c) 1999 - 2018 Intel Corporation. */
+/* Copyright(c) 1999 - 2019 Intel Corporation. */
 
 /* 82562G 10/100 Network Connection
  * 82562G-2 10/100 Network Connection
@@ -731,7 +731,7 @@ static s32 e1000_init_mac_params_ich8lan(struct e1000_hw *hw)
 /**
  *  __e1000_access_emi_reg_locked - Read/write EMI register
  *  @hw: pointer to the HW structure
- *  @addr: EMI address to program
+ *  @address: EMI address to program
  *  @data: pointer to value to read/write from/to the EMI address
  *  @read: boolean flag to indicate read or write
  *
@@ -2289,7 +2289,7 @@ release:
 /**
  *  e1000_configure_k1_ich8lan - Configure K1 power state
  *  @hw: pointer to the HW structure
- *  @enable: K1 state to configure
+ *  @k1_enable: K1 state to configure
  *
  *  Configure the K1 power state based on the provided parameter.
  *  Assumes semaphore already acquired.
@@ -2430,6 +2430,7 @@ static s32 e1000_set_mdio_slow_mode_hv(struct e1000_hw *hw)
 /**
  *  e1000_hv_phy_workarounds_ich8lan - A series of Phy workarounds to be
  *  done after every PHY reset.
+ *  @hw: pointer to the HW structure
  **/
 static s32 e1000_hv_phy_workarounds_ich8lan(struct e1000_hw *hw)
 {
@@ -2717,6 +2718,7 @@ s32 e1000_lv_jumbo_workaround_ich8lan(struct e1000_hw *hw, bool enable)
 /**
  *  e1000_lv_phy_workarounds_ich8lan - A series of Phy workarounds to be
  *  done after every PHY reset.
+ *  @hw: pointer to the HW structure
  **/
 static s32 e1000_lv_phy_workarounds_ich8lan(struct e1000_hw *hw)
 {
@@ -3314,7 +3316,7 @@ static s32 e1000_read_nvm_spt(struct e1000_hw *hw, u16 offset, u16 words,
 				    dev_spec->shadow_ram[offset + i].value;
 			else
 				data[i] = (u16)(dword & 0xFFFF);
-			if (dev_spec->shadow_ram[offset + i].modified)
+			if (dev_spec->shadow_ram[offset + i + 1].modified)
 				data[i + 1] =
 				    dev_spec->shadow_ram[offset + i + 1].value;
 			else
@@ -4629,6 +4631,7 @@ static s32 e1000_reset_hw_ich8lan(struct e1000_hw *hw)
 	u16 kum_cfg;
 	u32 ctrl, reg;
 	s32 ret_val;
+	u16 pci_cfg;
 
 	/* Prevent the PCI-E bus from sticking if there is no TLP connection
 	 * on the last TLP read/write transaction when MAC is reset.
@@ -4687,10 +4690,29 @@ static s32 e1000_reset_hw_ich8lan(struct e1000_hw *hw)
 			e1000_gate_hw_phy_config_ich8lan(hw, true);
 	}
 	ret_val = e1000_acquire_swflag_ich8lan(hw);
+
+	/* Read from EXTCNF_CTRL in e1000_acquire_swflag_ich8lan function
+	 * may occur during global reset and cause system hang.
+	 * Configuration space access creates the needed delay.
+	 * Write to E1000_STRAP RO register E1000_PCI_VENDOR_ID_REGISTER value
+	 * insures configuration space read is done before global reset.
+	 */
+	pci_read_config_word(hw->adapter->pdev, E1000_PCI_VENDOR_ID_REGISTER,
+			     &pci_cfg);
+	ew32(STRAP, pci_cfg);
 	e_dbg("Issuing a global reset to ich8lan\n");
 	ew32(CTRL, (ctrl | E1000_CTRL_RST));
 	/* cannot issue a flush here because it hangs the hardware */
 	msleep(20);
+
+	/* Configuration space access improve HW level time sync mechanism.
+	 * Write to E1000_STRAP RO register E1000_PCI_VENDOR_ID_REGISTER
+	 * value to insure configuration space read is done
+	 * before any access to mac register.
+	 */
+	pci_read_config_word(hw->adapter->pdev, E1000_PCI_VENDOR_ID_REGISTER,
+			     &pci_cfg);
+	ew32(STRAP, pci_cfg);
 
 	/* Set Phy Config Counter to 50msec */
 	if (hw->mac.type == e1000_pch2lan) {

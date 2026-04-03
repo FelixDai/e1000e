@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-/* Copyright(c) 1999 - 2018 Intel Corporation. */
+/* Copyright(c) 1999 - 2019 Intel Corporation. */
 
 #include "e1000.h"
 #include "kcompat.h"
@@ -1762,8 +1762,9 @@ void *__kc_devm_kmemdup(struct device *dev, const void *src, size_t len,
 #endif /* 3.16.0 */
 
 /******************************************************************************/
-#if ( LINUX_VERSION_CODE < KERNEL_VERSION(3,17,0) )
-#endif /* 3.17.0 */
+#if ((LINUX_VERSION_CODE < KERNEL_VERSION(3,17,0)) && \
+     (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(7,5)))
+#endif /* <3.17.0 && RHEL_RELEASE_CODE < RHEL7.5 */
 
 /******************************************************************************/
 #if ( LINUX_VERSION_CODE < KERNEL_VERSION(3,18,0) )
@@ -2056,6 +2057,49 @@ int _kc_eth_platform_get_mac_address(struct device *dev __maybe_unused,
 }
 #endif /* !(RHEL_RELEASE >= 7.3) */
 #endif /* < 4.5.0 */
+
+/*****************************************************************************/
+#if ((LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)) || \
+     (SLE_VERSION_CODE && (SLE_VERSION_CODE <= SLE_VERSION(12,3,0))) || \
+     (RHEL_RELEASE_CODE && (RHEL_RELEASE_CODE <= RHEL_RELEASE_VERSION(7,5))))
+const char *_kc_phy_speed_to_str(int speed)
+{
+	switch (speed) {
+	case SPEED_10:
+		return "10Mbps";
+	case SPEED_100:
+		return "100Mbps";
+	case SPEED_1000:
+		return "1Gbps";
+	case SPEED_2500:
+		return "2.5Gbps";
+	case SPEED_5000:
+		return "5Gbps";
+	case SPEED_10000:
+		return "10Gbps";
+	case SPEED_14000:
+		return "14Gbps";
+	case SPEED_20000:
+		return "20Gbps";
+	case SPEED_25000:
+		return "25Gbps";
+	case SPEED_40000:
+		return "40Gbps";
+	case SPEED_50000:
+		return "50Gbps";
+	case SPEED_56000:
+		return "56Gbps";
+#ifdef SPEED_100000
+	case SPEED_100000:
+		return "100Gbps";
+#endif
+	case SPEED_UNKNOWN:
+		return "Unknown";
+	default:
+		return "Unsupported (update phy-core.c)";
+	}
+}
+#endif /* (LINUX < 4.14.0) || (SLES <= 12.3.0) || (RHEL <= 7.5) */
 
 /******************************************************************************/
 #if ( LINUX_VERSION_CODE < KERNEL_VERSION(4,15,0) )

@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0 */
-/* Copyright(c) 1999 - 2018 Intel Corporation. */
+/* Copyright(c) 1999 - 2019 Intel Corporation. */
 
 #ifndef _E1000E_ICH8LAN_H_
 #define _E1000E_ICH8LAN_H_
@@ -284,6 +284,8 @@
 
 /* Proprietary Latency Tolerance Reporting PCI Capability */
 #define E1000_PCI_LTR_CAP_LPT		0xA8
+
+#define E1000_PCI_VENDOR_ID_REGISTER	0x00
 
 #define E1000_PCI_REVISION_ID_REG	0x08
 void e1000e_set_kmrn_lock_loss_workaround_ich8lan(struct e1000_hw *hw,
